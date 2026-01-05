@@ -1,0 +1,132 @@
+package com.example.modbus_api.service;
+
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+
+public class ModbusConstants {
+	public static final String SAUNA_PLC = "SaunaPLC"; 
+
+	public static final Map<Integer, String> SYSTEM_STATES;
+	static {
+			Map<Integer, String> states = new HashMap<>();
+			states.put(1, "Выключено");                                    
+			states.put(2, "Авария фатальная");                             
+			states.put(4, "Отключение по сбою");                          
+			states.put(8, "Быстрый запуск");                              
+			states.put(16, "Начальный запуск");                           
+			states.put(32, "Калибровка");                                 
+			states.put(64, "Вентилирование");                           
+			states.put(128, "Остановка агрегата, выбег");                 
+			states.put(256, "Продувка датчика давления");            
+			states.put(512, "Охлаждение калорифера");                
+			states.put(1024, "Остаточная работа теплообменника");         
+			states.put(2048, "Чистительный продув теплообменника");    
+			states.put(4096, "Вытяжка");                          
+			states.put(8192, "Калибровка вращения теплообменника");       
+			states.put(16384, "Размораживание теплообменника");          
+			SYSTEM_STATES = Collections.unmodifiableMap(states);
+	}
+
+	// Смещение T 
+	public static final int OFFSET_TEMP = 0; // Температура (*0+0)
+	public static final int OFFSET_HUMID = 1; // Влажность (*0+1)
+
+	// --- ТЕМПЕРАТУРА (тип 1) ---
+    public static final int REG_T_BT3 = 0x0100;    // T1
+    public static final int REG_T_BT11 = 0x0110;    // T2
+    public static final int REG_T_BT10 = 0x0120; // T3
+    public static final int REG_T_BT1 = 0x0130;  // T4-1
+    public static final int REG_T_BT2 = 0x0140;    // T5
+    public static final int REG_T_BT21 = 0x0150;  // T4-2
+
+	// --- ТЕМПЕРАТУРА (тип 2) ---
+	public static final int REG_T_BT8  = 0x0190;
+    public static final int REG_T_BT9  = 0x01A0; 
+    public static final int REG_T_BT24 = 0x01B0; 
+    public static final int REG_T_BT27 = 0x01C0; 
+
+	// --- ДАВЛЕНИЕ (Вентиляторы) ---
+	public static final int REG_P_BF11 = 0x0160;  // вентилятор 1
+	public static final int REG_P_BF12 = 0x01F0;  // внетилятор 2
+	public static final int REG_P_BF21 = 0x0170;  // вентилятор 3
+	public static final int REG_P_BF22 = 0x0200;  // внетилятор 4
+
+	// --- СКОРОСТЬ (Вентиляторы) ---
+	public static final int REG_F_G11 = 0x00B3; 
+	public static final int REG_F_G12 = 0x00B4; 
+	public static final int REG_F_G21 = 0x00B5; 
+	public static final int REG_F_G22 = 0x00B6; 
+
+	// --- ДАВЛЕНИЕ (W)  ---
+	public static final int REG_P_BP1 = 0x0210;
+	public static final int REG_P_BP2 = 0x0220;
+
+	public static final int REG_P_BP5 = 0x00AA;  // Давление "слева от рекупа"
+	public static final int REG_P_BP10 = 0x00A9;   // Давление "справа от рекупа"
+
+	public static final int REG_P_VM11 = 0x00A3; //обороты вентилятора 1
+	public static final int REG_P_VM12 = 0x00A4; //обороты вентилятора 2
+	public static final int REG_P_VM21 = 0x00A5; //обороты вентилятора 3
+	public static final int REG_P_VM22 = 0x00A6; //обороты вентилятора 4
+
+	public static final int REG_F_TARGET = 0x0024; // цель всех вентиляторов
+	public static final int REG_POWERPROC = 0x0070; // powerproc для расчета цели справа
+
+	public static final int REG_F_VH1 = 0x00AB; //клапан + слева
+	public static final int REG_F_VC1 = 0x00AC; //клапан - справа
+	public static final int REG_F_VH2 = 0x00AD; //клапан + справа
+	public static final int REG_F_VC2 = 0x00AE; //клапан - справа
+
+	// ТЕМПЕРАТУРЫ ЗОН
+	public static final int REG_T_ZONE1 = 0x0025;
+	public static final int REG_T_ZONE2 = 0x00CE;
+
+	public static final int REG_R_RECUP_SPEED = 0x00B8;
+	// public static final int REG_R_CURRENT = 0x0082; // заменил на время, потом вернуть
+	public static final int REG_R_CURRENT = 0x2C0; // заменил на время, потом вернуть
+	
+	public static final int REG_R_EFFICIENCY = 0x008A;
+	
+	public static final int REG_R_TARGET = 0x0084;
+	public static final int REG_R_STATE = 0x0010;
+	
+	// Объем прокачки
+	public static final int REG_F_VM1 = 0x0047;
+	public static final int REG_F_VM2 = 0x0048;
+
+	public static final int REG_V_VManualProcIn = 0x00D5;
+	public static final int REG_V_VManualDProcOut = 0x00D6;
+	
+	// --- ТЕМПЕРАТУРНЫЕ УСТАВКИ ---
+	// Целевые температуры зон
+	public static final int REG_T_TARGET_ZONE1 = 0x0025; // T manual
+	public static final int REG_T_TARGET_ZONE2 = 0x00CE; // T manual 2
+	
+	// Пороги температуры воды
+	public static final int REG_T_WATER_WARN = 0x00C3;  // снижение оборотов
+	public static final int REG_T_WATER_FAIL = 0x00C4;  // авария
+	
+	// Пороги температуры ПВ 
+	public static final int REG_T_INFLOW_WARN = 0x00C5; // снижение оборотов
+	public static final int REG_T_INFLOW_FAIL = 0x00C6; // авария
+	
+	// Режимы управления (только чтение)
+	public static final int REG_T_CTRL_MODE_ZONE1 = 0x0032; // 0-нейтральная, 1-нагрев, 2-охлаждение
+	public static final int REG_T_CTRL_MODE_ZONE2 = 0x0033;
+	
+	// Команда быстрой смены режима
+	public static final int REG_AGGREGATE_CMD = 0x0012;
+	public static final int CMD_FAST_MODE_CHANGE = 6;
+
+	// Задвижки
+	public static final int REG_Z_WORKSTATE = 0x008C;
+	public static final int MASK_DAMPER_SUPPLY = 0x0001;  // бит 0 - задвижка притока
+	public static final int MASK_DAMPER_EXHAUST = 0x0002; // бит 1 - задвижка вытяжки
+
+
+	// Проверка на 32768
+	public static final int INVALID_VALUE = 0x8000;
+
+}
+

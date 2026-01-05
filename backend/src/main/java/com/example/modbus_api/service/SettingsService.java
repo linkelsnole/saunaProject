@@ -1,0 +1,88 @@
+package com.example.modbus_api.service;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.io.IOException;
+
+import static com.example.modbus_api.service.ModbusConstants.*;
+
+@Service
+public class SettingsService {
+	private final ModbusClientAdapter modbusClient;
+
+	@Autowired
+	public SettingsService(ModbusClientAdapter modbusClient) {
+		this.modbusClient = modbusClient;
+	}
+
+	public void updateManualSettings(Double supplySpeed, Double boostPercent) throws IOException {
+		// При записи умножаем на 10 (90.1 -> 901)
+		if (supplySpeed != null) {
+			int rawValue = (int) Math.round(supplySpeed * 10);
+			modbusClient.writeRegister(SAUNA_PLC, REG_V_VManualProcIn, rawValue);
+			System.out.println("DEBUG: Записано supplySpeed: " + supplySpeed + " -> raw: " + rawValue);
+		}
+		
+		if (boostPercent != null) {
+			int rawValue = (int) Math.round(boostPercent * 10);
+			modbusClient.writeRegister(SAUNA_PLC, REG_V_VManualDProcOut, rawValue);
+			System.out.println("DEBUG: Записано boostPercent: " + boostPercent + " -> raw: " + rawValue);
+		}
+		
+		// После изменения уставок выполняем быструю смену режима
+		System.out.println("DEBUG: Выполняется быстрая смена режима...");
+		performFastModeChange();
+		System.out.println("DEBUG: Быстрая смена режима выполнена");
+	}
+
+	public void updateTempSettings(
+		Double targetZone1, 
+		Double targetZone2,
+		Double waterWarn, 
+		Double waterFail,
+		Double inflowWarn, 
+		Double inflowFail
+	) throws IOException {
+		// Целевые температуры зон (не делятся на 10)
+		if (targetZone1 != null) {
+			modbusClient.writeRegister(SAUNA_PLC, REG_T_TARGET_ZONE1, targetZone1.intValue());
+		}
+		if (targetZone2 != null) {
+			modbusClient.writeRegister(SAUNA_PLC, REG_T_TARGET_ZONE2, targetZone2.intValue());
+		}
+		
+		// Пороги температуры воды (умножаем на 10)
+		if (waterWarn != null) {
+			int rawValue = (int) Math.round(waterWarn * 10);
+			modbusClient.writeRegister(SAUNA_PLC, REG_T_WATER_WARN, rawValue);
+		}
+		if (waterFail != null) {
+			int rawValue = (int) Math.round(waterFail * 10);
+			modbusClient.writeRegister(SAUNA_PLC, REG_T_WATER_FAIL, rawValue);
+		}
+		
+		// Пороги температуры ПВ 
+		if (inflowWarn != null) {
+			int rawValue = (int) Math.round(inflowWarn * 10);
+			modbusClient.writeRegister(SAUNA_PLC, REG_T_INFLOW_WARN, rawValue);
+		}
+		if (inflowFail != null) {
+			int rawValue = (int) Math.round(inflowFail * 10);
+			modbusClient.writeRegister(SAUNA_PLC, REG_T_INFLOW_FAIL, rawValue);
+		}
+		
+		performFastModeChange();
+	}
+
+	public void performFastModeChange() throws IOException {
+		System.out.println("DEBUG: performFastModeChange вызван, отправка команды " + CMD_FAST_MODE_CHANGE);
+		sendAggregateCommand(CMD_FAST_MODE_CHANGE);
+		System.out.println("DEBUG: Команда " + CMD_FAST_MODE_CHANGE + " отправлена в регистр 0x" + Integer.toHexString(REG_AGGREGATE_CMD).toUpperCase());
+	}
+
+	private void sendAggregateCommand(int command) throws IOException {
+		modbusClient.writeRegister(SAUNA_PLC, REG_AGGREGATE_CMD, command);
+	}
+}
+
