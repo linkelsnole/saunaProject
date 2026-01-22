@@ -128,5 +128,13 @@ public class ModbusConstants {
 	// Проверка на 32768
 	public static final int INVALID_VALUE = 0x8000;
 
+
+	//Целевые обороты (Все в оборотах в минуту измеряются)
+	public static final int TARGET_R_REG = 0x0081;
+	public static final int CURRENT_R_REG = 0x0080;// Фактические обороты
+	public static final int SPEED_R_REG = 0x2C0; //Скорость вращения
+	
+	
+
 }
 

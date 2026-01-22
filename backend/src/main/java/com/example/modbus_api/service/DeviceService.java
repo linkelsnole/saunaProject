@@ -215,7 +215,7 @@ public class DeviceService {
 
 		Integer stateCode = data.get(REG_R_STATE);
 		String stateName = stateCode != null ? SYSTEM_STATES.getOrDefault(stateCode, "Неизвестно") : "Неизвестно";
-		boolean isEffectivelyOff = stateCode == null || stateCode == 0 || stateCode == 1 || stateCode == 128;
+		boolean isEffectivelyOff = stateCode == null || stateCode == 0 || (stateCode & 1) != 0 || stateCode == 128;
 		
 		RecuperatorStatusDto recuperatorStatus = RecuperatorStatusDto.builder()
 			.enabled(!isEffectivelyOff)

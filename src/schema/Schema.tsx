@@ -32,6 +32,35 @@ const Schema = () => {
 	const [optimisticState, setOptimisticState] = useState<{ enabled: boolean; stateCode: number } | null>(null);
 	const defaultColor = '#000';
 
+	const lastNotifiedErrorCode = useRef<number | null>(null);
+
+	useEffect(() => {
+        const status = data?.recuperatorStatus;
+        if (!status || status.stateCode == null) return;
+
+        const currentCode = status.stateCode;
+        const stateName = status.stateName;
+        const isAlarm = (currentCode & 6) !== 0;
+
+        if (isAlarm) {
+            if (lastNotifiedErrorCode.current !== currentCode) {
+                
+                toast.error("Внимание! Авария агрегата", {
+                    description: `Статус: ${stateName || 'Ошибка'} (Код ${currentCode})`,
+                    duration: 10000, 
+                });
+                lastNotifiedErrorCode.current = currentCode;
+            }
+        } else {
+            if (lastNotifiedErrorCode.current !== null) {
+                toast.success("Система в норме", {
+                    description: "Аварийные статусы сняты",
+                });
+                lastNotifiedErrorCode.current = null;
+            }
+        }
+    }, [data?.recuperatorStatus?.stateCode]);
+
 	const handleToggleRecuperator = async () => {
 		try {
 			setLoading(true);
