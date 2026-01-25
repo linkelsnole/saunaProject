@@ -194,7 +194,7 @@ const Schema = () => {
 			return speed != null ? `${speed} об/мин` : '-- об/мин';
 		}
 		if (id === 'R_CURRENT') {
-			const current = data?.recupCurrent;
+			const current = data?.recupTargetRpm; // было recupCurrent(0x2C0), заменил пока что 22.01.26
 			return current != null ? `${current} об/мин` : '-- об/мин';
 		}
 		const sensor = getRecuperator(id);

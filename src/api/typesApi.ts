@@ -40,6 +40,15 @@ export interface TempSettingsDto {
   inflowFailThreshold: number | null;
   ctrlModeZone1: number | null;
   ctrlModeZone2: number | null;
+
+  // Новые поля для отладки (Ввод)
+  neutralZoneT?: number | null;      // DTNeutral
+  hotValveMinProc?: number | null;   // HotValveMinProc
+  waterMinTNoWork?: number | null;   // TWaterNoWork
+  waterMinTWork?: number | null;     // TWaterWork
+  
+  // Новые поля (Только чтение)
+  radTempFail?: number | null;       // TRadFzFail
 }
 
 export interface DashboardData {
@@ -53,12 +62,19 @@ export interface DashboardData {
   vm1: number | null;
   vm2: number | null;
   recupSpeed: number | null;
-  recupCurrent: number | null;
+  recupCurrent: number | null; //повторение, исправить
   vManualProcIn: number | null;
   vManualDProcOut: number | null;
   manualSettings: ManualSettingsDto;
   tempSettings: TempSettingsDto;
   damperSupply: boolean | null;   // задвижка притока
   damperExhaust: boolean | null;   // задвижка вытяжки
+
+  debugValveSensors?: SensorData[];
+  
+  // Новые регистры рекуператора
+  recupTargetRpm?: number | null;   // Обороты вала рекуператора (целевые), об/мин
+  recupCurrentRpm?: number | null;  // Обороты вала, об/мин
+  recupSpeedRpm?: number | null;    // Скорость вращения, об/мин
 }
 
