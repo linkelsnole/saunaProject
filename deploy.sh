@@ -1,97 +1,73 @@
 #!/bin/bash
 
-# === НАСТРОЙКИ ===
 SERVER_USER="webpanel"
 SERVER_IP="212.164.86.237"
 JAR_NAME="sauna.jar"
 LOCAL_JAR="backend/target/sauna.jar"
 SSH_KEY="$HOME/.ssh/deploy_key"
 
-# Цвета для вывода
+# !!! ВАЖНО: Путь, откуда Systemd запускает файл
+REMOTE_DEST_DIR="/opt/webpanel"
+
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
-echo -e "${YELLOW}🚀 Начинаем деплой...${NC}"
+echo -e "${YELLOW}🚀 Deploy started (Small Sauna - Port 8080)...${NC}"
 
-# === 1. СБОРКА (фронт + бэк) ===
-echo -e "${YELLOW}📦 Сборка проекта...${NC}"
+echo -e "${YELLOW}📦 Maven Build...${NC}"
 cd backend
 mvn clean package -DskipTests
 if [ $? -ne 0 ]; then
-    echo -e "${RED}❌ Ошибка сборки Maven${NC}"
+    echo -e "${RED}❌ Maven build failed${NC}"
     exit 1
 fi
 cd ..
-echo -e "${GREEN}✅ Сборка завершена${NC}"
+echo -e "${GREEN}✅ Build success${NC}"
 
-# === 2. ОСТАНОВКА СТАРОГО ПРОЦЕССА ===
-echo -e "${YELLOW}🛑 Останавливаем старый процесс...${NC}"
+echo -e "${YELLOW}📤 Uploading new jar to ${REMOTE_DEST_DIR}...${NC}"
+scp -i "$SSH_KEY" "$LOCAL_JAR" "${SERVER_USER}@${SERVER_IP}:${REMOTE_DEST_DIR}/${JAR_NAME}"
+if [ $? -ne 0 ]; then
+    echo -e "${RED}❌ SCP failed. Check permissions.${NC}"
+    exit 1
+fi
+echo -e "${GREEN}✅ File uploaded${NC}"
+
+echo -e "${YELLOW}🔄 Triggering Systemd Restart (Kill process)...${NC}"
 ssh -i "$SSH_KEY" "${SERVER_USER}@${SERVER_IP}" 'bash -s' << 'ENDSSH'
-    PORT_PID=$(lsof -ti:8080)
+    # 1. Пробуем найти и убить по порту 8080
+    PORT_PID=$(lsof -ti:8080 2>/dev/null)
     if [ -n "$PORT_PID" ]; then
-        echo "Найден процесс на порту 8080 (PID: $PORT_PID)"
-        kill $PORT_PID 2>/dev/null
-        sleep 2
-        PORT_PID=$(lsof -ti:8080)
-        if [ -n "$PORT_PID" ]; then
-            echo "Принудительное завершение..."
-            kill -9 $PORT_PID 2>/dev/null
-            sleep 2
-        fi
-    fi
-    
-    pkill -f "sauna.jar" 2>/dev/null
-    sleep 1
-    
-    if lsof -ti:8080 > /dev/null 2>&1; then
-        echo "❌ Порт 8080 всё ещё занят!"
-        lsof -i:8080
-        exit 1
-    fi
-    echo "✅ Порт 8080 свободен"
-ENDSSH
-
-if [ $? -ne 0 ]; then
-    echo -e "${RED}❌ Не удалось освободить порт${NC}"
-    exit 1
-fi
-
-# === 3. КОПИРОВАНИЕ НА СЕРВЕР ===
-echo -e "${YELLOW}📤 Копирование на сервер...${NC}"
-scp -i "$SSH_KEY" "$LOCAL_JAR" "${SERVER_USER}@${SERVER_IP}:~/${JAR_NAME}"
-if [ $? -ne 0 ]; then
-    echo -e "${RED}❌ Ошибка копирования${NC}"
-    exit 1
-fi
-echo -e "${GREEN}✅ Файл скопирован${NC}"
-
-# === 4. ЗАПУСК НА СЕРВЕРЕ ===
-echo -e "${YELLOW}🚀 Запуск приложения...${NC}"
-ssh -i "$SSH_KEY" "${SERVER_USER}@${SERVER_IP}" 'bash -s' << 'ENDSSH'
-    rm -f ~/app_2.log
-    
-    echo "Запускаем новый процесс..."
-    nohup java -jar ~/sauna.jar --spring.profiles.active=prod > ~/app_2.log 2>&1 &
-    NEW_PID=$!
-    
-    echo "Ожидаем запуск (PID: $NEW_PID)..."
-    sleep 5
-    
-    if ps -p $NEW_PID > /dev/null 2>&1; then
-        echo "✅ Процесс запущен (PID: $NEW_PID)"
-        sleep 3
-        if lsof -ti:8080 > /dev/null 2>&1; then
-            echo "✅ Приложение слушает порт 8080"
-        else
-            echo "⚠️ Порт 8080 пока не открыт, проверьте логи"
-        fi
+        echo "Killing PID: $PORT_PID"
+        kill $PORT_PID
     else
-        echo "❌ Процесс не запустился! Логи:"
-        tail -30 ~/app_2.log
-        exit 1
+        echo "Process not found on port 8080 via lsof..."
     fi
+    
+    pkill -f "sauna.jar"
+    
+    echo "Waiting for Systemd to restart application..."
+    
+    # Ждем до 90 секунд
+    for i in {1..45}; do
+        sleep 2
+        if lsof -ti:8080 > /dev/null 2>&1; then
+            NEW_PID=$(lsof -ti:8080)
+            echo "✅ Service restarted automatically! PID: $NEW_PID"
+            exit 0
+        fi
+        echo -n "."
+    done
+    
+    echo ""
+    echo -e "⚠️ Timeout! Check logs at: /opt/webpanel/app_sauna.log"
+    exit 1
 ENDSSH
 
-echo -e "${GREEN}🎉 Деплой завершён успешно!${NC}"
+if [ $? -eq 0 ]; then
+    echo -e "${GREEN}🎉 Deploy successful!${NC}"
+else
+    echo -e "${RED}❌ Service did not start correctly${NC}"
+    exit 1
+fi

@@ -9,6 +9,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.io.IOException;
 
@@ -20,15 +23,22 @@ public class DeviceController {
 
     private final DeviceService deviceService;
     private final SettingsService settingsService;
+	private final ModbusClientAdapter adapter;
 
 
-    public DeviceController(DeviceService deviceService, SettingsService settingsService) {
+    public DeviceController(
+		DeviceService deviceService,
+		SettingsService settingsService,
+		ModbusClientAdapter adapter
+	) {
         this.deviceService = deviceService;
         this.settingsService = settingsService;
+		this.adapter = adapter;
     }
 
 	@Operation(summary = "Получить данные всех датчиков для дашборда")
 	@GetMapping("/dashboard")
+	@PreAuthorize("hasAnyRole('ADMIN','USER','READONLY')")
 	public ResponseEntity<?> getDashboardData() {
 		try {
 			DashboardData data = deviceService.getDashboardData();
@@ -40,6 +50,7 @@ public class DeviceController {
 
 	@Operation(summary = "Переподключение к Modbus устройству")
 	@PostMapping("/reconnect")
+	@PreAuthorize("hasRole('ADMIN')")
 	public ResponseEntity<?> reconnect() {
 		try {
 			deviceService.getModbusClient().reconnectButton();
@@ -51,6 +62,7 @@ public class DeviceController {
 
 	@Operation(summary = "Включить рекуператор")
 	@PostMapping("/recuperator/enable")
+	@PreAuthorize("hasAnyRole('ADMIN','USER')")
 	public ResponseEntity<?> enableRecuperator() {
 		try {
 			deviceService.enableRecuperator();
@@ -62,6 +74,7 @@ public class DeviceController {
 
 	@Operation(summary = "Выключить рекуператор")
 	@PostMapping("/recuperator/disable")
+	@PreAuthorize("hasAnyRole('ADMIN','USER')")
 	public ResponseEntity<?> disableRecuperator() {
 		try {
 			deviceService.disableRecuperator();
@@ -73,6 +86,7 @@ public class DeviceController {
 
 	@Operation(summary = "Обновить ручные настройки")
 	@PostMapping("/manual-settings")
+	@PreAuthorize("hasAnyRole('ADMIN','USER')")
 	public ResponseEntity<?> updateManualSettings(@RequestBody UpdateManualSettingsRequest request) {
 		try {
 			settingsService.updateManualSettings(request.getSupplySpeed(), request.getBoostPercent());
@@ -84,7 +98,12 @@ public class DeviceController {
 
 	@Operation(summary = "Обновить температурные уставки")
 	@PostMapping("/temp-settings")
+	@PreAuthorize("hasAnyRole('ADMIN','USER')")
 	public ResponseEntity<?> updateTempSettings(@RequestBody UpdateTempSettingsRequest request) {
+		if (isRole("ROLE_USER") && hasNonZoneTempFields(request)) {
+			return ResponseEntity.status(HttpStatus.FORBIDDEN)
+				.body(new ErrorResponse("FORBIDDEN", "Недостаточно прав для изменения этих уставок"));
+		}
 		try {
 			settingsService.updateTempSettings(
 				request.getTargetZone1(),
@@ -103,5 +122,41 @@ public class DeviceController {
 			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
 		}
 	}
+
+	@Operation(summary = "Обновить настройки рекуператора")
+	@PostMapping("/recuperator-settings")
+	@PreAuthorize("hasRole('ADMIN')")
+	public ResponseEntity<?> updateRecupSettings(@RequestBody UpdateRecupSettingsReq request) {
+		try {
+			settingsService.updateRecuperatorSettings(
+				request.getTargetRpmMin(),
+				request.getTargetRpmMax(),
+				request.getTargetRpmStep()
+			);
+			return ResponseEntity.ok().build();
+		} catch (IOException e) {
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+		}
+	}
+
+	private boolean isRole(String role) {
+		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+		if (authentication == null || authentication.getAuthorities() == null) {
+			return false;
+		}
+		return authentication.getAuthorities().stream().anyMatch(a -> role.equals(a.getAuthority()));
+	}
+
+	private boolean hasNonZoneTempFields(UpdateTempSettingsRequest request) {
+		return request.getWaterWarnThreshold() != null
+			|| request.getWaterFailThreshold() != null
+			|| request.getInflowWarnThreshold() != null
+			|| request.getInflowFailThreshold() != null
+			|| request.getNeutralZoneT() != null
+			|| request.getHotValveMinProc() != null
+			|| request.getWaterMinTNoWork() != null
+			|| request.getWaterMinTWork() != null;
+	}
+	
 
 }

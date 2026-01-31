@@ -150,5 +150,12 @@ public class ModbusConstants {
     public static final int REG_VALVE_HEAT_POS2 = 0x00AD;   // ValveHeatPos2
     public static final int REG_VALVE_COOL_POS2 = 0x00AE;   // ValveCoolPos2
     public static final int REG_VALVE_OPEN_PROC2 = 0x00BA;  // ValveOpenProc2
+
+	//Рекуператор 25.01.2026 (плавающая точка, об/мин, быстрая смена режима)
+    public static final int REG_R_TARGET_RPM_MIN = 0x005D;  // (мин) (сейчас 0 или 0.5 оборотов)
+    public static final int REG_R_TARGET_RPM_MAX = 0x005E;  // (макс) (сейчас от 1 до 7 оборотов может стоять)
+    public static final int REG_R_TARGET_RPM_STEP = 0x0065;  // 0x0065 - шаг калибровки (сейчас 0.1 или 0.3 оборота)
+
+	
 }
 

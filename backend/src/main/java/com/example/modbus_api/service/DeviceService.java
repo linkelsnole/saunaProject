@@ -9,6 +9,7 @@ import com.example.modbus_api.dto.FanFlowData;
 import com.example.modbus_api.dto.RecuperatorStatusDto;
 import com.example.modbus_api.dto.ManualSettingsDto;
 import com.example.modbus_api.dto.TempSettingsDto;
+import com.example.modbus_api.dto.RecuperatorSettingsDto;
 
 import java.util.Map;
 import java.util.List;
@@ -155,7 +156,12 @@ public class DeviceService {
 			REG_VALVE_OPEN_PROC1,
 			REG_VALVE_HEAT_POS2,
 			REG_VALVE_COOL_POS2,
-			REG_VALVE_OPEN_PROC2
+			REG_VALVE_OPEN_PROC2,
+
+
+			REG_R_TARGET_RPM_MIN,
+			REG_R_TARGET_RPM_MAX,
+			REG_R_TARGET_RPM_STEP
 		));
 
 		Map<Integer, Integer> data =  modbusClient.readRegisters(SAUNA_PLC, allRegs);
@@ -234,13 +240,14 @@ public class DeviceService {
 
 		// --- РЕКУПЕРАТОР ---
 		Integer recupSpeed = getValidOrNull(data.get(REG_R_RECUP_SPEED));
-		// Integer recupCurrentRaw = data.get(REG_R_CURRENT);
-		// Integer recupCurrent = (recupCurrentRaw != null && recupCurrentRaw != INVALID_VALUE) ? recupCurrentRaw / 10 : null; 
 		Integer recupCurrent = getValidScaled(data.get(REG_R_CURRENT), 10); 
 		System.out.println("DEBUG: recupCurrent: " + recupCurrent);
 		List<SensorData> recuperator = Arrays.asList(
 			createSensor("R_EFFICIENCY", "КПД", data.get(REG_R_EFFICIENCY), "%", 1.0)
 		);
+
+		//  -- РЕКУПЕРАТОР ШАГ и БЫСТРАЯ СМЕНА РЕЖИМА --
+		
 
 		Integer stateCode = data.get(REG_R_STATE);
 		String stateName = stateCode != null ? SYSTEM_STATES.getOrDefault(stateCode, "Неизвестно") : "Неизвестно";
@@ -300,6 +307,13 @@ public class DeviceService {
 		Double recupCurrentRpm = getValidScaled(data.get(CURRENT_R_REG), 100.0); // Обороты вала
 		Double recupSpeedRpm = getValidScaled(data.get(SPEED_R_REG), 10.0);      // Скорость вращения
 		
+		// --- УСТАВКИ РЕКУПЕРАТОРА (25.01.2026) ---
+		RecuperatorSettingsDto recuperatorSettings = RecuperatorSettingsDto.builder()
+			.targetRpmMin(getValidScaled(data.get(REG_R_TARGET_RPM_MIN), 10.0))   // Минимальные обороты (об/мин)
+			.targetRpmMax(getValidScaled(data.get(REG_R_TARGET_RPM_MAX), 10.0))   // Максимальные обороты (об/мин)
+			.targetRpmStep(getValidScaled(data.get(REG_R_TARGET_RPM_STEP), 10.0))  // Шаг калибровки (об/мин)
+			.build();
+		
 		TempSettingsDto tempSettings = TempSettingsDto.builder()
 			.targetZone1(targetZone1)
 			.targetZone2(targetZone2)
@@ -332,6 +346,7 @@ public class DeviceService {
 			.vManualDProcOut(vManualDProcOut)
 			.manualSettings(manualSettings)
 			.tempSettings(tempSettings)
+			.recuperatorSettings(recuperatorSettings)
 			.debugValveSensors(debugValveSensors) //22.01.2026
 			.damperSupply(damperSupply)
 			.damperExhaust(damperExhaust)
