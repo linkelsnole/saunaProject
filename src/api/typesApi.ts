@@ -90,3 +90,28 @@ export interface UpdateRecuperatorSettingsRequest {
   targetRpmMax?: number;
   targetRpmStep?: number;
 }
+
+export interface LegacyDateTime {
+  timeInMS?: number;
+}
+
+export interface SystemEvent {
+  type: number;
+  level: number;
+  title: string;
+  comment: string;
+  arrivalTime?: LegacyDateTime;
+  endTime?: LegacyDateTime;
+  equipName?: string;
+  devName?: string;
+  regNum?: number;
+  bitNum?: number;
+  prevValue?: number;
+  value?: number;
+  secondRegNum?: number;
+  secondRegValue?: number;
+  viewLevel?: number;
+  packedValues?: string;
+  logUnit?: number;
+  facadeClass?: string;
+}

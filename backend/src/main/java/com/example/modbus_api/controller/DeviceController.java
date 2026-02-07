@@ -14,6 +14,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.io.IOException;
+import java.util.List;
+import com.example.modbus_api.modbus.legacy.ArchESSEvent;
 
 @RestController
 @RequestMapping("/api/v1/devices")
@@ -23,17 +25,14 @@ public class DeviceController {
 
     private final DeviceService deviceService;
     private final SettingsService settingsService;
-	private final ModbusClientAdapter adapter;
 
 
     public DeviceController(
 		DeviceService deviceService,
-		SettingsService settingsService,
-		ModbusClientAdapter adapter
+		SettingsService settingsService
 	) {
         this.deviceService = deviceService;
         this.settingsService = settingsService;
-		this.adapter = adapter;
     }
 
 	@Operation(summary = "Получить данные всех датчиков для дашборда")
@@ -136,6 +135,19 @@ public class DeviceController {
 			return ResponseEntity.ok().build();
 		} catch (IOException e) {
 			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+		}
+	}
+
+	@Operation(summary = "Получить журнал событий")
+	@GetMapping("/events")
+	@PreAuthorize("hasAnyRole('ADMIN','USER','READONLY')")
+	public ResponseEntity<?> getEvents(@RequestParam(defaultValue = "60") int minutes) {
+		try {
+			List<ArchESSEvent> events = deviceService.getSystemEvents(minutes);
+			return ResponseEntity.ok(events);
+		} catch (IOException e) {
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+				.body(new ErrorResponse("API_ERROR", e.getMessage()));
 		}
 	}
 

@@ -18,6 +18,9 @@ import java.util.ArrayList;
 import java.io.IOException;
 
 import static com.example.modbus_api.service.ModbusConstants.*;
+import com.example.modbus_api.modbus.ModbusAPIClient;
+import com.example.modbus_api.modbus.legacy.ArchESSEvent;
+import com.example.modbus_api.modbus.legacy.IntegerList;
 
 
 @Service
@@ -61,9 +64,31 @@ public class DeviceService {
 		System.out.println("DEBUG: Команда выключения отправлена, текущее состояние: " + currentState + " - " + stateName);
 	}
 
-	public DashboardData getDashboardData() throws IOException {
+	public List<ArchESSEvent> getSystemEvents(int lastMinutes) throws IOException {
+		modbusClient.ensureConnection();
 
-		List<Integer> allRegs = new ArrayList<>(Arrays.asList(
+		IntegerList types = new IntegerList();
+		types.add(16); // EventPLC - Сообщения модуля управления
+		types.add(3);  // EventExternal
+		types.add(4);  // EventSystem
+		types.add(6);  // EventFailure (Аварии)
+
+		ArrayList<ArchESSEvent> events = new ModbusAPIClient.APICall<ArrayList<ArchESSEvent>>() {
+			@Override
+			public retrofit2.Call<ArrayList<ArchESSEvent>> apiFun() {
+				return modbusClient.getApi().getEventsList(
+					modbusClient.getSessionToken(),
+					lastMinutes,
+					types
+				);
+			}
+		}.call();
+
+		return events != null ? events : new ArrayList<>();
+	}
+
+	public DashboardData getDashboardData() throws IOException {
+		List<Integer> tempRegs = Arrays.asList(
 			// --- ТЕМПЕРАТУРА (тип 1) ---
 			REG_T_BT3,    // T1
 			REG_T_BT11,    // T2
@@ -78,6 +103,17 @@ public class DeviceService {
 			REG_T_BT24,
 			REG_T_BT27,
 
+			// --- ТЕМПЕРАТУРЫ ЗОН ---
+			REG_T_ZONE1,
+			REG_T_ZONE2
+		);
+
+		List<Integer> allRegs = new ArrayList<>(tempRegs);
+		for (Integer reg : tempRegs) {
+			allRegs.add(reg + OFFSET_HUMID);
+		}
+
+		allRegs.addAll(Arrays.asList(
 			// --- ДАВЛЕНИЕ (Вентиляторы) ---
 			REG_P_BF11,  // вентилятор 1
 			REG_P_BF12,  // внетилятор 2
@@ -115,10 +151,6 @@ public class DeviceService {
 			REG_F_G12,
 			REG_F_G21,
 			REG_F_G22,
-
-			// --- ТЕМПЕРАТУРЫ ЗОН ---
-			REG_T_ZONE1,
-			REG_T_ZONE2,
 
 			// --- РЕКУПЕРАТОР ---
 			REG_R_RECUP_SPEED,
@@ -377,7 +409,7 @@ public class DeviceService {
 			.id(id)
 			.label(label)
 			.temperature(temp != null ? temp.doubleValue() : null)
-			.humidity(humid != null ? humid.doubleValue() : null)
+			.humidity(getValidScaled(humid, 10.0))
 			.build();
 	}
 
@@ -388,7 +420,7 @@ public class DeviceService {
 		
 		return FanFlowData.builder()
 			.type(type)
-			.pressure(getValidScaled(pressureRaw, 10.0))
+			.pressure(getValidScaled(pressureRaw, 1.0))
 			.speedPerc(isValid(speedPercRaw) ? (int)(speedPercRaw / 100.0) : null)
 			.vm(getValidOrNull(vmRaw))
 			.targetAirFlow(targetFlow)

@@ -89,9 +89,13 @@ const ValveMonitorRow = ({ label, value, unit = '%' }: { label: string; value: s
 const getModeLabel = (mode: number | null | undefined): string => {
   if (mode === null || mode === undefined) return 'N/A';
   switch (mode) {
-    case 0: return 'Нейтральная';
-    case 1: return 'Нагрев';
-    case 2: return 'Охлаждение';
+    case 0: return 'Отключено';
+    case 1: return 'Нейтральная зона';
+    case 2: return 'НЗ после нагрева';
+    case 3: return 'НЗ после охлаждения';
+    case 4: return 'Охлаждение';
+    case 5: return 'Нагрев';
+    case 6: return 'Усреднение по T';
     default: return 'Неизвестно';
   }
 };
@@ -100,8 +104,12 @@ const getModeColor = (mode: number | null | undefined): string => {
   if (mode === null || mode === undefined) return 'bg-slate-100 text-slate-500';
   switch (mode) {
     case 0: return 'bg-slate-100 text-slate-600';
-    case 1: return 'bg-red-100 text-red-700';
-    case 2: return 'bg-blue-100 text-blue-700';
+    case 1: return 'bg-slate-100 text-slate-600';
+    case 2: return 'bg-orange-100 text-orange-700';
+    case 3: return 'bg-cyan-100 text-cyan-700';
+    case 4: return 'bg-blue-100 text-blue-700';
+    case 5: return 'bg-red-100 text-red-700';
+    case 6: return 'bg-violet-100 text-violet-700';
     default: return 'bg-slate-100 text-slate-500';
   }
 };
@@ -279,6 +287,7 @@ export const TempSettingsWidget = () => {
         </div>
       </div>
 
+      
     </div>
   );
 };

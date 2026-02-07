@@ -4,6 +4,7 @@ interface TemperatureBlockProps {
   width: number
   height: number
   text: string
+  subText?: string
   x?: number
   y?: number
   rotation?: number
@@ -11,12 +12,16 @@ interface TemperatureBlockProps {
   labelOffsetY?: number
   labelWidth?: number
   keepLabelUpright?: boolean
+  subTextFontSize?: number
+  subTextColor?: string
+  subTextOffsetY?: number
 }
 
 export function TemperatureBlock({
   width,
   height,
   text,
+  subText,
   x = 0,
   y = 0,
   rotation = 0,
@@ -24,6 +29,9 @@ export function TemperatureBlock({
   labelOffsetY = 0,
   labelWidth = 70,
   keepLabelUpright = true,
+  subTextFontSize = 11,
+  subTextColor = '#4b5563',
+  subTextOffsetY = 0,
 }: TemperatureBlockProps) {
   const triangleSize = height * 0.8
   const lineLength = width * 0.3
@@ -41,8 +49,22 @@ export function TemperatureBlock({
         align="right"
         fontSize={16}
         fill="#000"
+        fontFamily="Inter, Arial, sans-serif"
         rotation={keepLabelUpright ? 0 : rotation}
       />
+      {subText ? (
+        <Text
+          text={subText}
+          x={labelOffsetX}
+          y={centerY + 8 + labelOffsetY + subTextOffsetY}
+          width={labelWidth}
+          align="right"
+          fontSize={subTextFontSize}
+          fill={subTextColor}
+          fontFamily="Inter, Arial, sans-serif"
+          rotation={keepLabelUpright ? 0 : rotation}
+        />
+      ) : null}
 
       <Group x={shapeX} y={centerY} rotation={rotation}>
         <Line

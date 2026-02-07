@@ -116,6 +116,12 @@ const Schema = () => {
 		return temp != null ? `${temp.toFixed(1)} °C` : '-- °C';
 	};
 
+	const formatHumidity = (id: string): string => {
+		const sensor = getClimate(id);
+		const humid = sensor?.humidity;
+		return humid != null ? `${humid.toFixed(1)} %` : '-- %';
+	};
+
 	const formatPressure = (id: string): string => {
 		const sensor = getWSensor(id);
 		const value = sensor?.value;
@@ -138,12 +144,14 @@ const Schema = () => {
 		
 		const valveValue = valve?.value;
 		const tempValue = temp?.temperature;
+		const humidValue = temp?.humidity;
 		
 		const valveInt = valveValue != null ? Math.round(parseFloat(valveValue)) : null;
 		const valveStr = valveInt != null ? `${valveInt} % (клапан)` : '-- % (клапан)';
 		const tempStr = tempValue != null ? `${tempValue.toFixed(1)} °C` : '-- °C';
+		const humidStr = humidValue != null ? `${humidValue.toFixed(1)} %` : '-- %';
 		
-		return `${valveStr}\n${tempStr}`;
+		return `${valveStr}\n${tempStr}\n${humidStr}`;
 	};
 
 	const formatFanLabel = (id: string, bottomValue: 'vm1' | 'vm2' | 'formula' | 'vmanual' = 'vm2'): string => {
@@ -186,6 +194,7 @@ const Schema = () => {
 		const temp = sensor?.temperature;
 		return temp != null ? `${temp.toFixed(1)} °C` : '-- °C';
 	};
+
 
 	const getRecuperator = (id: string) => {
 		return data?.recuperator?.find(s => s.id === id);
@@ -258,26 +267,12 @@ const Schema = () => {
     <div
 		className='relative w-full h-full flex flex-col'
 		ref={containerRef}
-		style={{ backgroundImage: `url(/bg2.jpg)` }}
+		style={{ backgroundColor: 'transparent' }}
 	>
 		{/* Loading overlay */}
 		{showLoadingOverlay && <LoadingOverlay />}
 		
       <div className='flex-1 flex items-center justify-center'>
-        <div className="absolute inset-0 z-0">
-					<div 
-						className="absolute inset-0 w-full h-full"
-						style={{
-							background: `
-								radial-gradient(circle at 20% 20%, rgba(168, 85, 247, 0.12) 0%, transparent 50%),
-								radial-gradient(circle at 80% 80%, rgba(59, 130, 246, 0.15) 0%, transparent 50%),
-								radial-gradient(circle at 40% 60%, rgba(14, 165, 233, 0.1) 0%, transparent 50%),
-								linear-gradient(135deg, #e0f2fe 0%, #dbeafe 50%, #e0e7ff 100%)
-							`
-						}}
-					/>
-        </div>
-
         <Stage 
           width={stageSize.width} 
           height={stageSize.height} 
@@ -395,6 +390,7 @@ const Schema = () => {
 				width={100}
 				height={25}
 				text={formatTemperature('BT2')}
+				subText={formatHumidity('BT2')}
 				x={36}
 				y={300}
 			/>
@@ -402,6 +398,7 @@ const Schema = () => {
 				width={100}
 				height={25}
 				text={formatTemperature('BT3')}
+				subText={formatHumidity('BT3')}
 				x={372}
 				y={540}
 				rotation={-180}
@@ -413,6 +410,7 @@ const Schema = () => {
 				width={100}
 				height={25}
 				text={formatTemperature('BT10')}
+				subText={formatHumidity('BT10')}
 				x={372}
 				y={340}
 				rotation={-180}
@@ -425,6 +423,7 @@ const Schema = () => {
 				width={100}
 				height={25}
 				text={formatTemperature('BT11')}
+				subText={formatHumidity('BT11')}
 				x={36}
 				y={610}
 			/>
@@ -433,6 +432,7 @@ const Schema = () => {
 				width={100}
 				height={25}
 				text={formatTemperature('BT21')}
+				subText={formatHumidity('BT21')}
 				x={456}
 				y={50}
 				rotation={-180}
@@ -445,6 +445,7 @@ const Schema = () => {
 				width={100}
 				height={25}
 				text={formatTemperature('BT1')}
+				subText={formatHumidity('BT1')}
 				x={186}
 				y={50}
 				labelWidth={70}
@@ -454,43 +455,50 @@ const Schema = () => {
 			
 			{/*MG2 MG1 - задвижки притока и вытяжки*/}
 			<Group y={640}>
-			<DiagonalBlock 
-				size={45}
-				x={373}
-				isOpen={data?.damperSupply}
-			/>
-			<DiagonalBlock 
-				size={45}
-				x={136}
-				isOpen={data?.damperExhaust}
-			/>
+				<Html>
+					<DiagonalBlock 
+						size={45}
+						x={373}
+						isOpen={data?.damperSupply}
+					/>
+				</Html>
+				<Html>
+					<DiagonalBlock 
+						size={45}
+						x={136}
+						isOpen={data?.damperExhaust}
+					/>
+				</Html>
 			</Group>
 			
 			{/*BF12 и BF11 - объединенный компонент*/}
-			<TriangleBlock 
-				size={45}
-				x={395}
-				y={285}
-				rotation={-90}
-				leftLabel={formatFanLabel('Вентилятор 1', 'vm1')}
-				rightLabel={formatFanLabel('Вентилятор 2', 'vmanual')}
-				labelWidth={150}
-				labelGap={30}
-				rightLabelOffsetX={-43}
-			/>
+			<Html>
+				<TriangleBlock 
+					size={45}
+					x={395}
+					y={285}
+					rotation={-90}
+					leftLabel={formatFanLabel('Вентилятор 1', 'vm1')}
+					rightLabel={formatFanLabel('Вентилятор 2', 'vmanual')}
+					labelWidth={150}
+					labelGap={15}
+				/>
+			</Html>
 
 			{/*BF21 и BF22 - объединенный компонент*/}
-			<TriangleBlock 
-				size={45}
-				x={160}
-				y={528}
-				rotation={90}
-				leftLabel={formatFanLabel('Вентилятор 3', 'vm2')}
-				rightLabel={formatFanLabel('Вентилятор 4', 'formula')}
-				labelWidth={150}
-				labelGap={30}
-				rightLabelOffsetX={-43}
-			/>
+			<Html>
+				<TriangleBlock 
+					size={45}
+					x={160}
+					y={528}
+					rotation={90}
+					leftLabel={formatFanLabel('Вентилятор 3', 'vm2')}
+					rightLabel={formatFanLabel('Вентилятор 4', 'formula')}
+					labelWidth={150}
+					labelGap={15}
+
+				/>
+			</Html>
 
 
 
@@ -522,6 +530,7 @@ const Schema = () => {
 					y={0}
 					fontSize={13}
 					fill="green"
+					fontFamily="Inter, Arial, sans-serif"
 				/>
 				<Text
 					text={`${formatZoneTemperature('T_ZONE2')}`}
@@ -529,6 +538,7 @@ const Schema = () => {
 					y={0}
 					fontSize={13}
 					fill="green"
+					fontFamily="Inter, Arial, sans-serif"
 				/>
 			</Group>
 		    {/*РЕКУПЕРАТОР*/}
