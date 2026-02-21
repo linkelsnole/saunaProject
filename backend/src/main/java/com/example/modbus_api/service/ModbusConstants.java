@@ -90,6 +90,8 @@ public class ModbusConstants {
 	
 	public static final int REG_R_TARGET = 0x0084;
 	public static final int REG_R_STATE = 0x0010;
+	public static final int MASK_STATE_ALARM = 0x0004;
+	public static final int MASK_STATE_VENTILATION = 0x0040;
 	
 	// Объем прокачки
 	public static final int REG_F_VM1 = 0x0047;

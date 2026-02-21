@@ -46,7 +46,7 @@ public class DeviceService {
 		}
 		
 		Integer currentState = modbusClient.readRegister(SAUNA_PLC, REG_R_STATE);
-		String stateName = currentState != null ? SYSTEM_STATES.getOrDefault(currentState, "Неизвестно (" + currentState + ")") : "Неизвестно";
+		String stateName = resolveRecuperatorStateName(currentState);
 		System.out.println("DEBUG: Команда включения отправлена, текущее состояние: " + currentState + " - " + stateName);
 	}
 
@@ -60,7 +60,7 @@ public class DeviceService {
 		}
 		
 		Integer currentState = modbusClient.readRegister(SAUNA_PLC, REG_R_STATE);
-		String stateName = currentState != null ? SYSTEM_STATES.getOrDefault(currentState, "Неизвестно (" + currentState + ")") : "Неизвестно";
+		String stateName = resolveRecuperatorStateName(currentState);
 		System.out.println("DEBUG: Команда выключения отправлена, текущее состояние: " + currentState + " - " + stateName);
 	}
 
@@ -282,7 +282,7 @@ public class DeviceService {
 		
 
 		Integer stateCode = data.get(REG_R_STATE);
-		String stateName = stateCode != null ? SYSTEM_STATES.getOrDefault(stateCode, "Неизвестно") : "Неизвестно";
+		String stateName = resolveRecuperatorStateName(stateCode);
 		boolean isEffectivelyOff = stateCode == null || stateCode == 0 || (stateCode & 1) != 0 || stateCode == 128;
 		
 		RecuperatorStatusDto recuperatorStatus = RecuperatorStatusDto.builder()
@@ -456,5 +456,26 @@ public class DeviceService {
 
 	private Integer getValidScaled(Integer value, int divisor) {
 		return isValid(value) ? value / divisor : null;
+	}
+
+	private String resolveRecuperatorStateName(Integer stateCode) {
+		if (stateCode == null) {
+			return "Неизвестно";
+		}
+		
+		String direct = SYSTEM_STATES.get(stateCode);
+		if (direct != null) {
+			return direct;
+		}
+		
+		if ((stateCode & MASK_STATE_VENTILATION) != 0) {
+			return SYSTEM_STATES.getOrDefault(MASK_STATE_VENTILATION, "Вентилирование");
+		}
+		
+		if ((stateCode & MASK_STATE_ALARM) != 0) {
+			return SYSTEM_STATES.getOrDefault(MASK_STATE_ALARM, "Отключение по сбою");
+		}
+		
+		return "Неизвестно (" + stateCode + ")";
 	}
 }

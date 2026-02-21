@@ -1,10 +1,7 @@
-import React from 'react'
-
 interface DiagonalBlockProps {
 	size: number
 	x?: number
 	y?: number
-	// true - открыто (зеленый), false/null - закрыто (серый)
 	isOpen?: boolean | null
 }
 
@@ -38,7 +35,6 @@ export function DiagonalBlock({ size, x = 0, y = 0, isOpen = null }: DiagonalBlo
 				zIndex: 10,
 			}}
 		>
-			{/* Фоновая диагональная линия (SVG для четкости) */}
 			<svg
 				width={size}
 				height={size}
@@ -49,26 +45,23 @@ export function DiagonalBlock({ size, x = 0, y = 0, isOpen = null }: DiagonalBlo
 					y1={size}
 					x2={size}
 					y2="0"
-					stroke="#CBD5E1" // Цвет линии: Slate-300 (не черный, а приятный серый)
-					strokeWidth="2"  // Толщина 2px
+					stroke="#CBD5E1"
+					strokeWidth="2"  
 					strokeLinecap="round"
 				/>
 			</svg>
 
-			{/* Центральный индикатор (HTML div для крутых CSS теней) */}
 			<div
 				style={{
 					width: circleSize,
 					height: circleSize,
 					borderRadius: '50%',
 					backgroundColor: indicatorColor,
-					// Применяем магию теней и границ
 					boxShadow: indicatorShadow,
 					border: indicatorBorder,
-					// Небольшая белая обводка снаружи, чтобы отделить от линии
 					outline: '2px solid white',
-					zIndex: 2, // Поверх линии
-					transition: 'all 0.3s ease', // Плавное переключение статуса
+					zIndex: 2, 
+					transition: 'all 0.3s ease',
 				}}
 			/>
 		</div>

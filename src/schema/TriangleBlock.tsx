@@ -1,5 +1,3 @@
-import React from 'react'
-
 interface TriangleBlockProps {
 	size: number
 	x?: number
@@ -41,7 +39,7 @@ export function TriangleBlock({
 		lineHeight: `${labelLineHeight}px`,
 		color: labelColor,
 		fontFamily: 'ui-monospace, SFMono-Regular, Menlo, sans-serif',
-		fontWeight: 600,
+		fontWeight: 400,
 		whiteSpace: 'pre-line',
 		userSelect: 'none',
 		top: '50%', 
@@ -130,10 +128,10 @@ export function TriangleBlock({
 				</svg>
 			</div>
 
-			{leftLabel && rightLabel ? (
+			{(leftLabel != null || rightLabel != null) ? (
 				<>
-					{renderLabel(leftLabel, 'left')}
-					{renderLabel(rightLabel, 'right')}
+					{leftLabel != null && leftLabel !== '' ? renderLabel(leftLabel, 'left') : null}
+					{rightLabel != null && rightLabel !== '' ? renderLabel(rightLabel, 'right') : null}
 				</>
 			) : label ? (
 				renderLabel(label, 'center') 

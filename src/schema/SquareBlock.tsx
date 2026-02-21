@@ -21,9 +21,9 @@ export function SquareBlock({
 	label,
 	labelOffsetX = 0,
 	labelOffsetY = 0,
-	labelGap = 12,
+	labelGap = 5,
 	labelWidth = 140,
-	labelFontSize = 13,
+	labelFontSize = 12,
 	labelLineHeight = 16,
 	labelColor = '#0F172A', // Slate-900 (Почти черный, для контраста)
 }: SquareBlockProps) {
@@ -38,7 +38,7 @@ export function SquareBlock({
 				width: size,
 				height: size,
 				backgroundColor: '#FFFFFF', 
-				border: '1px solid #E2E8F0', 
+				border: '1.9px solid #cfd5e1', 
 				borderRadius: '14px', 
 				boxShadow: '0 4px 12px -2px rgba(0, 0, 0, 0.08), 0 2px 6px -1px rgba(0, 0, 0, 0.04)',
 				display: 'flex',
@@ -57,9 +57,8 @@ export function SquareBlock({
 						width: labelWidth,
 						fontSize: labelFontSize,
 						lineHeight: `${labelLineHeight}px`,
-						// Шрифт жирнее (600), чтобы не выглядел блекло
 						fontFamily: 'ui-monospace, SFMono-Regular, Menlo, sans-serif',
-						fontWeight: 600, 
+						fontWeight: 400, 
 						color: labelColor,
 						whiteSpace: 'pre-line',
 						userSelect: 'none',
@@ -75,19 +74,17 @@ export function SquareBlock({
 					width: circleSize,
 					height: circleSize,
 					borderRadius: '50%',
-					// Фон чуть темнее, чтобы выделить нишу
 					backgroundColor: '#F1F5F9', 
 					display: 'flex',
 					alignItems: 'center',
 					justifyContent: 'center',
 					position: 'relative',
-					// --- МАГИЯ ОБЪЕМА (INSET SHADOW) ---
-					// Внутренняя тень создает эффект "вдавленности" внутрь
-					boxShadow: 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.06)',
-					border: '1px solid rgba(0,0,0,0.02)' // Микро-граница
+					boxShadow: 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.12)',
+					border: '1px solid rgba(0,0,0,0.02)' 
+					
 				}}
 			>
-				{/* Иконка стала жирнее и темнее */}
+
 				<svg
 					width={circleSize * 0.55}
 					height={circleSize * 0.55}
@@ -97,13 +94,13 @@ export function SquareBlock({
 					{sign === '+' ? (
 						<>
 							<line
-								x1="12" y1="5" x2="12" y2="19"
+								x1="12.5" y1="5" x2="12.5" y2="19"
 								stroke="#0F172A"
 								strokeWidth="3" // Жирнее (было 2.5)
 								strokeLinecap="round"
 							/>
 							<line
-								x1="5" y1="12" x2="19" y2="12"
+								x1="5.5" y1="12" x2="19.5" y2="12"
 								stroke="#0F172A"
 								strokeWidth="3"
 								strokeLinecap="round"
