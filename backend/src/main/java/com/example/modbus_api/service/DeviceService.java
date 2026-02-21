@@ -438,7 +438,7 @@ public class DeviceService {
 	}
 
 	private SensorData createSensor(String id, String name, Integer rawValue, String unit) {
-		return createSensor(id, name, rawValue, unit, 10.0);
+		return createSensor(id, name, rawValue, unit, 1.0);
 	}
 
 	// == HELPER METHODS
