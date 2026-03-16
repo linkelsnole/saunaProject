@@ -17,7 +17,6 @@ const ManualInput = ({ label, value, onChange, unit = '%', readOnly = false }: M
   const [localValue, setLocalValue] = useState('');
   const [isEditing, setIsEditing] = useState(false);
 
-  // Синхронизация с сервером (только если не редактируем)
   useEffect(() => {
     if (!isEditing && value !== null && value !== undefined) {
       setLocalValue(value.toFixed(1));
@@ -27,15 +26,12 @@ const ManualInput = ({ label, value, onChange, unit = '%', readOnly = false }: M
   const handleBlur = () => {
     setIsEditing(false);
     
-    // Заменяем точку на запятую перед парсингом
     const normalizedValue = localValue.replace('.', ',');
     const numVal = parseFloat(normalizedValue.replace(',', '.'));
 
     if (!isNaN(numVal) && Math.abs(numVal - (value || 0)) > 0.01) {
       onChange(numVal);
-      // Уведомление будет в onSuccess хука после ответа сервера
     } else {
-      // Если ввели ерунду - возвращаем как было
       if (value !== null && value !== undefined) {
         setLocalValue(value.toFixed(1));
       }

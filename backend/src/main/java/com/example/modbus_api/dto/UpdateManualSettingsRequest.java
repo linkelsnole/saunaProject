@@ -8,7 +8,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UpdateManualSettingsRequest {
-    // Поля опциональны - можно обновлять по одному
     private Double supplySpeed;  // В процентах (90.1%)
     private Double boostPercent; // В процентах (15.4%)
 }

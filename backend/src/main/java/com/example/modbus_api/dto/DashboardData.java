@@ -27,7 +27,8 @@ public class DashboardData {
     private Integer vm1;
     private Integer vm2;
     private Integer recupSpeed;
-    private Integer recupCurrent; 
+    private Integer recupStateCode;  // RecupState 0x00A4
+    private String recupStateName;   // Отключен, Макс. обороты, Настройка, Стабилизация, Врем. остановка
     
     @JsonProperty("vManualProcIn")
     private Double vManualProcIn;

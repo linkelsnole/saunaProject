@@ -37,7 +37,7 @@ public class DeviceController {
 
 	@Operation(summary = "Получить данные всех датчиков для дашборда")
 	@GetMapping("/dashboard")
-	@PreAuthorize("hasAnyRole('ADMIN','USER','READONLY')")
+	@PreAuthorize("hasAnyRole('ADMIN','USER','READONLY','MGM')")
 	public ResponseEntity<?> getDashboardData() {
 		try {
 			DashboardData data = deviceService.getDashboardData();
@@ -61,7 +61,7 @@ public class DeviceController {
 
 	@Operation(summary = "Включить рекуператор")
 	@PostMapping("/recuperator/enable")
-	@PreAuthorize("hasAnyRole('ADMIN','USER')")
+	@PreAuthorize("hasAnyRole('ADMIN','USER','MGM')")
 	public ResponseEntity<?> enableRecuperator() {
 		try {
 			deviceService.enableRecuperator();
@@ -73,7 +73,7 @@ public class DeviceController {
 
 	@Operation(summary = "Выключить рекуператор")
 	@PostMapping("/recuperator/disable")
-	@PreAuthorize("hasAnyRole('ADMIN','USER')")
+	@PreAuthorize("hasAnyRole('ADMIN','USER','MGM')")
 	public ResponseEntity<?> disableRecuperator() {
 		try {
 			deviceService.disableRecuperator();
@@ -140,7 +140,7 @@ public class DeviceController {
 
 	@Operation(summary = "Получить журнал событий")
 	@GetMapping("/events")
-	@PreAuthorize("hasAnyRole('ADMIN','USER','READONLY')")
+	@PreAuthorize("hasAnyRole('ADMIN','USER','READONLY','MGM')")
 	public ResponseEntity<?> getEvents(@RequestParam(defaultValue = "60") int minutes) {
 		try {
 			List<ArchESSEvent> events = deviceService.getSystemEvents(minutes);

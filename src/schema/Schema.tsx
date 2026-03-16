@@ -83,7 +83,7 @@ const Schema = () => {
 	const [loading, setLoading] = useState(false);
 	const [optimisticState, setOptimisticState] = useState<{ enabled: boolean; stateCode: number } | null>(null);
 	const defaultColor = '#000';
-	const canToggleRecuperator = role === 'ROLE_ADMIN' || role === 'ROLE_USER';
+	const canToggleRecuperator = role === 'ROLE_ADMIN' || role === 'ROLE_USER' || role === 'ROLE_MGM';
 
 	const lastNotifiedErrorCode = useRef<number | null>(null);
 
@@ -194,14 +194,14 @@ const Schema = () => {
 		
 		const valveValue = valve?.value;
 		const tempValue = temp?.temperature;
-		const humidValue = temp?.humidity;
+		// const humidValue = temp?.humidity;
 		
 		const valveInt = valveValue != null ? Math.round(parseFloat(valveValue)) : null;
 		const valveStr = valveInt != null ? `${valveInt} %` : '-- %';
 		const tempStr = tempValue != null ? `${tempValue.toFixed(1)} °C` : '-- °C';
-		const humidStr = humidValue != null ? `${humidValue.toFixed(1)} %` : '-- %';
+		// const humidStr = humidValue != null ? `${humidValue.toFixed(1)} %` : '-- %';
 		
-		return `${valveStr}\n${tempStr}\n${humidStr}`;
+		return `${valveStr}\n${tempStr}`;
 	};
 
 	const formatFanLabel = (id: string): string => {
@@ -253,9 +253,9 @@ const Schema = () => {
 			const speed = data?.recupSpeed;
 			return speed != null ? `${speed} об/мин` : '-- об/мин';
 		}
-		if (id === 'R_CURRENT') {
-			const current = data?.recupTargetRpm; // было recupCurrent(0x2C0), заменил пока что 22.01.26
-			return current != null ? `${Number(current).toFixed(1)} об/мин` : '-- об/мин';
+		if (id === 'R_TARGET') {
+			const target = data?.recupTargetRpm;
+			return target != null ? `${Number(target).toFixed(1)} об/мин` : '-- об/мин';
 		}
 		const sensor = getRecuperator(id);
 		const value = sensor?.value;
@@ -664,7 +664,7 @@ const Schema = () => {
 				<Line points={[50, 47.7, 270, 47.7]} stroke={defaultColor} strokeWidth={2} />
 
 				<Text
-					text={formatRecuperator('R_CURRENT')}
+					text={formatRecuperator('R_TARGET')}
 					x={70}
 					y={20}
 					fontSize={10}

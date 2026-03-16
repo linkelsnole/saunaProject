@@ -62,8 +62,8 @@ public class ModbusConstants {
 	public static final int REG_P_BP1 = 0x0210;
 	public static final int REG_P_BP2 = 0x0220;
 
-	public static final int REG_P_BP5 = 0x00AA;  // Давление "слева от рекупа"
-	public static final int REG_P_BP10 = 0x00A9;   // Давление "справа от рекупа"
+	public static final int REG_P_BP5 = 0x0230;  // Давление "слева от рекупа"
+	public static final int REG_P_BP10 = 0x0180;   // Давление "справа от рекупа"
 
 	public static final int REG_P_VM11 = 0x00A3; //обороты вентилятора 1
 	public static final int REG_P_VM12 = 0x00A4; //обороты вентилятора 2
@@ -82,11 +82,10 @@ public class ModbusConstants {
 	public static final int REG_T_ZONE1 = 0x0025;
 	public static final int REG_T_ZONE2 = 0x00CE;
 
-	public static final int REG_R_RECUP_SPEED = 0x00B8;
-	// public static final int REG_R_CURRENT = 0x0082; // заменил на время, потом вернуть
-	public static final int REG_R_CURRENT = 0x2C0; // заменил на время, потом вернуть
+	public static final int REG_R_RECUP_SPEED = 0x00B8; // обороты вала
+	public static final int REG_R_SPEED = 0x0082; // скорость вращения
 	
-	public static final int REG_R_EFFICIENCY = 0x008A;
+	// public static final int REG_R_EFFICIENCY = 0x008A;  // КПД теперь считаем: abs(BT3-BT10)/abs(BT3-BT2)
 	
 	public static final int REG_R_TARGET = 0x0084;
 	public static final int REG_R_STATE = 0x0010;
@@ -159,6 +158,19 @@ public class ModbusConstants {
     public static final int REG_R_TARGET_RPM_MAX = 0x005E;  // (макс) (сейчас от 1 до 7 оборотов может стоять)
     public static final int REG_R_TARGET_RPM_STEP = 0x0065;  // 0x0065 - шаг калибровки (сейчас 0.1 или 0.3 оборота)
 
+	// RecupState (MEStateRegister) 0x00A4 — текущее состояние рекуператора
+	public static final int REG_RECUP_STATE = 0x00BB;
+
+	public static final Map<Integer, String> RECUP_STATES;
+	static {
+		Map<Integer, String> m = new HashMap<>();
+		m.put(0, "Отключен");
+		m.put(1, "Макс. обороты");
+		m.put(2, "Настройка");
+		m.put(3, "Стабилизация");
+		m.put(4, "Врем. остановка");
+		RECUP_STATES = Collections.unmodifiableMap(m);
+	}
 	
 }
 
