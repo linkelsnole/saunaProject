@@ -17,6 +17,7 @@ import {
 } from './deviceApi';
 import type { DashboardData, UpdateRecuperatorSettingsRequest, RecuperatorSettingsDto, UserActionEntry } from './typesApi';
 import { toast } from 'sonner';
+import i18n from '@/shared/config/i18n/i18n';
 
 export const deviceKeys = {
   dashboard: () => ['dashboard'] as const,
@@ -81,14 +82,14 @@ export const useUpdateManualSettings = () => {
 
 
     onSuccess: () => {
-      toast.success('Настройки объема сохранены');
+      toast.success(i18n.t('toasts.volumeSaved'));
     },
 
     onError: (_err, _newSettings, context) => {
       if (context?.previousDashboard) {
         queryClient.setQueryData(dashboardKey, context.previousDashboard);
       }
-      toast.error('Не удалось сохранить настройки');
+      toast.error(i18n.t('toasts.saveError'));
     },
 
     onSettled: () => {
@@ -140,14 +141,14 @@ export const useUpdateTempSettings = () => {
     },
 
     onSuccess: () => {
-      toast.success('Температурные уставки сохранены');
+      toast.success(i18n.t('toasts.tempSaved'));
     },
 
     onError: (_err, _newSettings, context) => {
       if (context?.previousDashboard) {
         queryClient.setQueryData(dashboardKey, context.previousDashboard);
       }
-      toast.error('Не удалось сохранить температурные уставки');
+      toast.error(i18n.t('toasts.tempSaveError'));
     },
 
     onSettled: () => {
@@ -191,14 +192,14 @@ export const useUpdateRecuperatorSettings = () => {
     },
 
     onSuccess: () => {
-      toast.success('Уставки рекуператора сохранены');
+      toast.success(i18n.t('toasts.recupSaved'));
     },
 
     onError: (_err, _newSettings, context) => {
       if (context?.previousDashboard) {
         queryClient.setQueryData(dashboardKey, context.previousDashboard);
       }
-      toast.error('Не удалось сохранить уставки рекуператора');
+      toast.error(i18n.t('toasts.recupSaveError'));
     },
 
     onSettled: () => {
@@ -238,7 +239,7 @@ export const useUpgradeLoadStatus = () => {
   return useMutation({
     mutationFn: (url?: string) => getUpgradeLoadStatus(url),
     onError: () => {
-      toast.error('Ошибка проверки статуса загрузки обновления');
+      toast.error(i18n.t('toasts.upgradeLoadStatusError'));
     },
   });
 };
@@ -247,7 +248,7 @@ export const useStartUpgradeDownload = () => {
   return useMutation({
     mutationFn: (url?: string) => startUpgradeDownload(url),
     onError: () => {
-      toast.error('Ошибка запуска загрузки обновления');
+      toast.error(i18n.t('toasts.upgradeDownloadError'));
     },
   });
 };
@@ -256,7 +257,7 @@ export const useUpgradeInstallStatus = () => {
   return useMutation({
     mutationFn: getUpgradeInstallStatus,
     onError: () => {
-      toast.error('Ошибка проверки статуса установки обновления');
+      toast.error(i18n.t('toasts.upgradeInstallStatusError'));
     },
   });
 };
@@ -265,7 +266,7 @@ export const useStartUpgradeInstall = () => {
   return useMutation({
     mutationFn: () => startUpgradeInstall(),
     onError: () => {
-      toast.error('Ошибка запуска установки обновления');
+      toast.error(i18n.t('toasts.upgradeInstallError'));
     },
   });
 };
@@ -284,10 +285,10 @@ export const useUpdateLogSettings = () => {
     mutationFn: (intervalMinutes: number) => updateLogSettings(intervalMinutes),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['logs', 'settings'] });
-      toast.success('Интервал записи сохранен');
+      toast.success(i18n.t('toasts.intervalSaved'));
     },
     onError: () => {
-      toast.error('Не удалось сохранить интервал записи');
+      toast.error(i18n.t('toasts.intervalSaveError'));
     },
   });
 };
@@ -305,10 +306,10 @@ export const useDownloadReadings = () => {
   return useMutation({
     mutationFn: ({ from, to }: { from: number; to: number }) => downloadReadingsFile(from, to),
     onSuccess: () => {
-      toast.success('Файл с показаниями скачан');
+      toast.success(i18n.t('toasts.readingsDownloaded'));
     },
     onError: () => {
-      toast.error('Не удалось скачать файл показаний');
+      toast.error(i18n.t('toasts.readingsDownloadError'));
     },
   });
 };

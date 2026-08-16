@@ -1,5 +1,6 @@
 import { useRef, useCallback } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {Card,CardContent} from "@/shared/ui/card";
 
 import Schema from "@/schema/Schema";
@@ -21,7 +22,10 @@ import { cn } from "@/shared/lib/utils";
 
 const SWIPE_THRESHOLD = 60;
 
-const SettingsTabs = ({ isAdmin, compact }: { isAdmin: boolean; compact?: boolean }) => (
+const SettingsTabs = ({ isAdmin, compact }: { isAdmin: boolean; compact?: boolean }) => {
+	const { t } = useTranslation();
+
+	return (
 	<Tabs defaultValue="volume" className="h-full flex flex-col min-h-0">
 		<TabsList
 			className={cn(
@@ -29,12 +33,12 @@ const SettingsTabs = ({ isAdmin, compact }: { isAdmin: boolean; compact?: boolea
 				compact && "mb-4 flex w-full flex-nowrap justify-start overflow-x-auto"
 			)}
 		>
-			<TabsTrigger value="volume" className={compact ? "flex-none px-4" : ""}>Объем</TabsTrigger>
-			<TabsTrigger value="temperature" className={compact ? "flex-none px-4" : ""}>Температура</TabsTrigger>
-			<TabsTrigger value="recuperator" className={compact ? "flex-none px-4" : ""}>Рекуператор</TabsTrigger>
-			{isAdmin && <TabsTrigger value="errors" className={compact ? "flex-none px-4" : ""}>Ошибки</TabsTrigger>}
-			{isAdmin && <TabsTrigger value="logs" className={compact ? "flex-none px-4" : ""}>Логи</TabsTrigger>}
-			{isAdmin && <TabsTrigger value="update" className={compact ? "flex-none px-4" : ""}>Обновление</TabsTrigger>}
+			<TabsTrigger value="volume" className={compact ? "flex-none px-4" : ""}>{t('app.tabs.volume')}</TabsTrigger>
+			<TabsTrigger value="temperature" className={compact ? "flex-none px-4" : ""}>{t('app.tabs.temperature')}</TabsTrigger>
+			<TabsTrigger value="recuperator" className={compact ? "flex-none px-4" : ""}>{t('app.tabs.recuperator')}</TabsTrigger>
+			{isAdmin && <TabsTrigger value="errors" className={compact ? "flex-none px-4" : ""}>{t('app.tabs.errors')}</TabsTrigger>}
+			{isAdmin && <TabsTrigger value="logs" className={compact ? "flex-none px-4" : ""}>{t('app.tabs.logs')}</TabsTrigger>}
+			{isAdmin && <TabsTrigger value="update" className={compact ? "flex-none px-4" : ""}>{t('app.tabs.update')}</TabsTrigger>}
 		</TabsList>
 		<TabsContent value="volume" className="flex-1 overflow-y-auto">
 			<ManualSettingsWidget />
@@ -61,10 +65,12 @@ const SettingsTabs = ({ isAdmin, compact }: { isAdmin: boolean; compact?: boolea
 			</TabsContent>
 		)}
 	</Tabs>
-);
+	);
+};
 
 const MainDashboard = () => {
 	const { role } = useAuth();
+	const { t } = useTranslation();
 	const sheet = useSettingsSheet();
 	const isAdmin = role === "ROLE_ADMIN";
 	const touchStartX = useRef(0);
@@ -112,7 +118,7 @@ const MainDashboard = () => {
 				<Sheet open={sheet.open} onOpenChange={sheet.setOpen}>
 					<SheetContent side="left" className="w-[92vw] max-w-[360px] md:hidden bg-white p-0 flex flex-col overflow-hidden">
 						<SheetHeader className="border-b border-slate-100 px-5 pr-12 pt-5 pb-4 shrink-0">
-							<SheetTitle className="text-lg">Уставки</SheetTitle>
+							<SheetTitle className="text-lg">{t('app.setpoints')}</SheetTitle>
 						</SheetHeader>
 						<div className="flex-1 min-h-0 overflow-y-auto px-5 py-4 pb-8">
 							<SettingsTabs isAdmin={isAdmin} compact />

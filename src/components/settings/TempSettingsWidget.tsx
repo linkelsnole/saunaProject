@@ -5,6 +5,7 @@ import { Badge } from '@/shared/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { GlassCard } from '@/shared/ui/GlassCard';
 import { NeoInput } from '@/shared/ui/NeoInput';
+import { useTranslation } from 'react-i18next';
 
 
 interface TempInputProps {
@@ -95,17 +96,17 @@ const ValveMonitorRow = ({ label, value, unit = '%' }: { label: string; value: s
   </div>
 );
 
-const getModeLabel = (mode: number | null | undefined): string => {
-  if (mode === null || mode === undefined) return 'N/A';
+const getModeLabelKey = (mode: number | null | undefined): string => {
+  if (mode === null || mode === undefined) return 'tempWidget.modes.na';
   switch (mode) {
-    case 0: return 'Отключено';
-    case 1: return 'Нейтральная зона';
-    case 2: return 'НЗ после нагрева';
-    case 3: return 'НЗ после охлаждения';
-    case 4: return 'Охлаждение';
-    case 5: return 'Нагрев';
-    case 6: return 'Усреднение по T';
-    default: return 'Неизвестно';
+    case 0: return 'tempWidget.modes.off';
+    case 1: return 'tempWidget.modes.neutralZone';
+    case 2: return 'tempWidget.modes.nzAfterHeating';
+    case 3: return 'tempWidget.modes.nzAfterCooling';
+    case 4: return 'tempWidget.modes.cooling';
+    case 5: return 'tempWidget.modes.heating';
+    case 6: return 'tempWidget.modes.tAveraging';
+    default: return 'tempWidget.modes.unknown';
   }
 };
 
@@ -125,6 +126,7 @@ const getModeColor = (mode: number | null | undefined): string => {
 
 
 export const TempSettingsWidget = () => {
+  const { t } = useTranslation();
   const { data } = useDashboardData();
   const { mutate } = useUpdateTempSettings();
   const { role } = useAuth();
@@ -148,17 +150,17 @@ export const TempSettingsWidget = () => {
           <div className="p-4 border-b border-slate-200 flex justify-between items-center bg-white/20">
             <h4 className="text-sm font-bold text-slate-700 tracking-wider flex items-center gap-2">
               <div className="w-2 h-2 bg-slate-800 rounded-full shadow-lg" />
-              Зона 1
+              {t('tempWidget.zone1')}
             </h4>
             <Badge
               className={`${getModeColor(tempSettings?.ctrlModeZone1)} px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide backdrop-blur-md border border-slate-200 shadow-sm`}
             >
-              {getModeLabel(tempSettings?.ctrlModeZone1)}
+              {t(getModeLabelKey(tempSettings?.ctrlModeZone1))}
             </Badge>
           </div>
           <div className="p-5 flex-1 space-y-6">
             <TempInput
-              label="Целевая температура"
+              label={t('tempWidget.target')}
               value={tempSettings?.targetZone1}
               onChange={(val) => mutate({ targetZone1: val })}
               decimals={0}
@@ -166,9 +168,9 @@ export const TempSettingsWidget = () => {
               inputClassName="h-16 text-3xl tracking-tight text-center"
             />
             <div className="bg-slate-500/5 rounded-xl p-3 border border-slate-200 shadow-[inset_0_2px_4px_rgba(0,0,0,0.05)]">
-              <ValveMonitorRow label="Вентиль ГВ" value={getSensorVal('VHP1')} />
-              <ValveMonitorRow label="Вентиль ХВ" value={getSensorVal('VCP1')} />
-              <ValveMonitorRow label="Доп. открытие ГВ" value={getSensorVal('VOP1')} />
+              <ValveMonitorRow label={t('tempWidget.hotValve')} value={getSensorVal('VHP1')} />
+              <ValveMonitorRow label={t('tempWidget.coldValve')} value={getSensorVal('VCP1')} />
+              <ValveMonitorRow label={t('tempWidget.hotValveExtra')} value={getSensorVal('VOP1')} />
             </div>
           </div>
         </GlassCard>
@@ -178,17 +180,17 @@ export const TempSettingsWidget = () => {
           <div className="p-4 border-b border-slate-200 flex justify-between items-center bg-white/20">
             <h4 className="text-sm font-bold text-slate-700 tracking-wider flex items-center gap-2">
               <div className="w-2 h-2 bg-slate-800 rounded-full shadow-lg" />
-              Зона 2
+              {t('tempWidget.zone2')}
             </h4>
             <Badge
               className={`${getModeColor(tempSettings?.ctrlModeZone2)} px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide backdrop-blur-md border border-slate-200 shadow-sm`}
             >
-              {getModeLabel(tempSettings?.ctrlModeZone2)}
+              {t(getModeLabelKey(tempSettings?.ctrlModeZone2))}
             </Badge>
           </div>
           <div className="p-5 flex-1 space-y-6">
             <TempInput
-              label="Целевая температура"
+              label={t('tempWidget.target')}
               value={tempSettings?.targetZone2}
               onChange={(val) => mutate({ targetZone2: val })}
               decimals={0}
@@ -196,9 +198,9 @@ export const TempSettingsWidget = () => {
               inputClassName="h-16 text-3xl tracking-tight text-center"
             />
             <div className="bg-slate-500/5 rounded-xl p-3 border border-slate-200 shadow-[inset_0_2px_4px_rgba(0,0,0,0.05)]">
-              <ValveMonitorRow label="Вентиль ГВ" value={getSensorVal('VHP2')} />
-              <ValveMonitorRow label="Вентиль ХВ" value={getSensorVal('VCP2')} />
-              <ValveMonitorRow label="Доп. открытие ГВ" value={getSensorVal('VOP2')} />
+              <ValveMonitorRow label={t('tempWidget.hotValve')} value={getSensorVal('VHP2')} />
+              <ValveMonitorRow label={t('tempWidget.coldValve')} value={getSensorVal('VCP2')} />
+              <ValveMonitorRow label={t('tempWidget.hotValveExtra')} value={getSensorVal('VOP2')} />
             </div>
           </div>
         </GlassCard>
@@ -208,14 +210,14 @@ export const TempSettingsWidget = () => {
       <GlassCard className="p-4">
         <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3 flex items-center gap-2">
           <span className="w-1.5 h-1.5 rounded-full bg-amber-400/90" />
-          Температура
+          {t('tempWidget.temperatureSection')}
         </h4>
         <p className="text-[10px] text-slate-400 mb-3 font-mono">
           0xE1 · 0xDD · 0x7E
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <TempInput
-            label="Положение вентилей при запуске"
+            label={t('tempWidget.valveStartupPosition')}
             value={tempSettings?.valveStartupPositionProc}
             onChange={(val) => mutate({ valveStartupPositionProc: val })}
             unit="%"
@@ -246,17 +248,17 @@ export const TempSettingsWidget = () => {
         {/* Пороги Воды */}
         <GlassCard className="p-4">
           <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3 flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-400/70"></span> Пороги температуры воды
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-400/70"></span> {t('tempWidget.waterThresholds')}
           </h4>
           <div className="grid grid-cols-2 gap-3">
             <TempInput
-              label="Снижение оборотов"
+              label={t('tempWidget.rpmReduction')}
               value={tempSettings?.waterWarnThreshold}
               onChange={(val) => mutate({ waterWarnThreshold: val })}
               readOnly={!canEditAll}
             />
             <TempInput
-              label="Авария"
+              label={t('tempWidget.failure')}
               value={tempSettings?.waterFailThreshold}
               onChange={(val) => mutate({ waterFailThreshold: val })}
               readOnly={!canEditAll}
@@ -267,17 +269,17 @@ export const TempSettingsWidget = () => {
         {/* Пороги Притока */}
         <GlassCard className="p-4">
           <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3 flex items-center gap-2">
-             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400/70"></span> Пороги температуры ПВ
+             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400/70"></span> {t('tempWidget.supplyThresholds')}
           </h4>
           <div className="grid grid-cols-2 gap-3">
             <TempInput
-              label="Снижение оборотов"
+              label={t('tempWidget.rpmReduction')}
               value={tempSettings?.inflowWarnThreshold}
               onChange={(val) => mutate({ inflowWarnThreshold: val })}
               readOnly={!canEditAll}
             />
             <TempInput
-              label="Авария"
+              label={t('tempWidget.failure')}
               value={tempSettings?.inflowFailThreshold}
               onChange={(val) => mutate({ inflowFailThreshold: val })}
               readOnly={!canEditAll}
@@ -291,32 +293,32 @@ export const TempSettingsWidget = () => {
         <div className="flex items-center gap-2 mb-4">
            <div className="bg-yellow-400/80 w-1 h-4 rounded-full"></div>
            <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wide">
-             Уставки
+             {t('tempWidget.setpoints')}
            </h4>
         </div>
         
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
            <TempInput
-             label="Нейтральная зона T"
+             label={t('tempWidget.neutralZoneT')}
              value={tempSettings?.neutralZoneT}
              onChange={(val) => mutate({ neutralZoneT: val })}
              readOnly={!canEditAll}
            />
            <TempInput
-             label="Мин. % вентилей ГВ"
+             label={t('tempWidget.hotValveMin')}
              value={tempSettings?.hotValveMinProc}
              onChange={(val) => mutate({ hotValveMinProc: val })}
              unit="%"
              readOnly={!canEditAll}
            />
            <TempInput
-             label="Мин. Т ГВ при неработающих вент."
+             label={t('tempWidget.waterMinTNoWork')}
              value={tempSettings?.waterMinTNoWork}
              onChange={(val) => mutate({ waterMinTNoWork: val })}
              readOnly={!canEditAll}
            />
            <TempInput
-             label="Мин. Т ГВ при работающих вент."
+             label={t('tempWidget.waterMinTWork')}
              value={tempSettings?.waterMinTWork}
              onChange={(val) => mutate({ waterMinTWork: val })}
              readOnly={!canEditAll}
@@ -326,7 +328,7 @@ export const TempSettingsWidget = () => {
         {/* Аварийный мониторинг радиатора */}
         <div className="rounded-lg border border-slate-200 bg-white/40 px-3 py-2 flex justify-between items-center shadow-[inset_0_2px_4px_rgba(0,0,0,0.05)]">
             <span className="text-xs font-bold text-slate-700 uppercase">
-              Т радиатора - авария (E2,E8)
+              {t('tempWidget.radiatorFail')}
             </span>
             <span className="font-mono text-base font-bold text-slate-700 bg-white/60 px-3 py-1 rounded shadow-sm border border-slate-200">
                {tempSettings?.radTempFail ?? '-'} °C

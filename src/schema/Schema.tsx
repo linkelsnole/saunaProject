@@ -16,15 +16,21 @@ import { toggleRecuperator } from '@/api/deviceApi';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
+import i18n from '@/shared/config/i18n/i18n';
 
-const LoadingOverlay = () => (
-	<div className="absolute inset-0 z-50 flex items-center justify-center bg-white/50 backdrop-blur-[10px]">
-		<div className="flex flex-col items-center gap-3 p-6 bg-white/80 rounded-2xl shadow-lg">
-			<Loader2 className="w-10 h-10 text-blue-500 animate-spin" />
-			<span className="text-sm text-gray-600">Получение данных...</span>
+const LoadingOverlay = () => {
+	const { t } = useTranslation();
+
+	return (
+		<div className="absolute inset-0 z-50 flex items-center justify-center bg-white/50 backdrop-blur-[10px]">
+			<div className="flex flex-col items-center gap-3 p-6 bg-white/80 rounded-2xl shadow-lg">
+				<Loader2 className="w-10 h-10 text-blue-500 animate-spin" />
+				<span className="text-sm text-gray-600">{t('schemaView.loading')}</span>
+			</div>
 		</div>
-	</div>
-);
+	);
+};
 
 const FanBottomLabel = ({
 	x,
@@ -74,6 +80,7 @@ const GlassBackground = ({ scale }: { scale: number }) => {
 };
 
 const Schema = () => {
+	const { t } = useTranslation();
 	const { data, isLoading, refetch } = useDashboardData();
 	const { role } = useAuth();
 	const containerRef = useRef<HTMLDivElement>(null);
@@ -98,16 +105,16 @@ const Schema = () => {
         if (isAlarm) {
             if (lastNotifiedErrorCode.current !== currentCode) {
                 
-                toast.error("Внимание! Авария агрегата", {
-                    description: `Статус: ${stateName || 'Ошибка'} (Код ${currentCode})`,
+                toast.error(i18n.t('schemaView.alarmTitle'), {
+                    description: i18n.t('schemaView.alarmDescription', { status: stateName || i18n.t('schemaView.statusFallback'), code: currentCode }),
                     duration: 10000, 
                 });
                 lastNotifiedErrorCode.current = currentCode;
             }
         } else {
             if (lastNotifiedErrorCode.current !== null) {
-                toast.success("Система в норме", {
-                    description: "Аварийные статусы сняты",
+                toast.success(i18n.t('schemaView.normalTitle'), {
+                    description: i18n.t('schemaView.normalDescription'),
                 });
                 lastNotifiedErrorCode.current = null;
             }
@@ -130,10 +137,10 @@ const Schema = () => {
 			
 			setOptimisticState(null);
 			
-			toast.success(isCurrentlyEnabled ? 'Останов агрегата' : 'Запуск агрегата');
+			toast.success(isCurrentlyEnabled ? t('schemaView.unitStopped') : t('schemaView.unitStarted'));
 		} catch (error) {
 			setOptimisticState(null);
-			toast.error('Ошибка при переключении рекуператора');
+			toast.error(t('schemaView.toggleError'));
 			console.error(error);
 		} finally {
 			setLoading(false);
@@ -175,7 +182,7 @@ const Schema = () => {
 	const formatPressure = (id: string): string => {
 		const sensor = getWSensor(id);
 		const value = sensor?.value;
-		return value != null ? `${Math.round(parseFloat(value))} Па` : '-- Па';
+		return value != null ? `${Math.round(parseFloat(value))} ${t('units.pa')}` : `-- ${t('units.pa')}`;
 	};
 
 	const formatPressureSensor = (id: string): string => {
@@ -183,9 +190,9 @@ const Schema = () => {
 		const value = sensor?.value;
 		if (value != null) {
 			const intValue = Math.round(parseFloat(value));
-			return `${intValue} Па`;
+			return `${intValue} ${t('units.pa')}`;
 		}
-		return '-- Па';
+		return `-- ${t('units.pa')}`;
 	};
 
 	const formatValveLabel = (valveId: string, tempId: string): string => {
@@ -209,20 +216,20 @@ const Schema = () => {
 		const pressure = fan?.pressure;
 		const speed = fan?.speedPerc;
 		const vm = fan?.vm;
-		const pressureStr = pressure != null ? `${Math.round(pressure)} Па` : '-- Па';
+		const pressureStr = pressure != null ? `${Math.round(pressure)} ${t('units.pa')}` : `-- ${t('units.pa')}`;
 		const speedStr = speed != null ? `${speed} %` : '-- %';
-		const vmStr = vm != null ? `${vm} м³/ч` : '-- м³/ч';
+		const vmStr = vm != null ? `${vm} ${t('units.m3h')}` : `-- ${t('units.m3h')}`;
 		return `${pressureStr}\n${speedStr}\n${vmStr}`;
 	};
 
 	const formatFanBottomLabel = (type: 'vm1' | 'vm2' | 'formula' | 'vmanual'): string => {
 		if (type === 'vm1') {
 			const v = data?.vm1;
-			return v != null ? `${v} м³/ч` : '-- м³/ч';
+			return v != null ? `${v} ${t('units.m3h')}` : `-- ${t('units.m3h')}`;
 		}
 		if (type === 'vm2') {
 			const v = data?.vm2;
-			return v != null ? `${v} м³/ч` : '-- м³/ч';
+			return v != null ? `${v} ${t('units.m3h')}` : `-- ${t('units.m3h')}`;
 		}
 		if (type === 'vmanual') {
 			const v = data?.vManualProcIn;
@@ -251,11 +258,11 @@ const Schema = () => {
 	const formatRecuperator = (id: string): string => {
 		if (id === 'R_SPEED') {
 			const speed = data?.recupSpeed;
-			return speed != null ? `${speed} об/мин` : '-- об/мин';
+			return speed != null ? `${speed} ${t('units.rpm')}` : `-- ${t('units.rpm')}`;
 		}
 		if (id === 'R_TARGET') {
 			const target = data?.recupTargetRpm;
-			return target != null ? `${Number(target).toFixed(2)} об/мин` : '-- об/мин';
+			return target != null ? `${Number(target).toFixed(2)} ${t('units.rpm')}` : `-- ${t('units.rpm')}`;
 		}
 		const sensor = getRecuperator(id);
 		const value = sensor?.value;
