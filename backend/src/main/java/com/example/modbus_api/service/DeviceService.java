@@ -172,6 +172,9 @@ public class DeviceService {
 			REG_T_INFLOW_FAIL,
 			REG_T_CTRL_MODE_ZONE1,
 			REG_T_CTRL_MODE_ZONE2,
+			REG_T_VALVE_STARTUP_POS,   // 0xE1 положение вентилей при запуске
+			REG_T_CTRL_ALGORITHM,      // 0xDD алгоритм управления по T
+			REG_T_TRACKING_INTERVAL,   // 0x7E интервал слежения по T
 
 			//Задвижки
 			REG_Z_WORKSTATE,
@@ -192,6 +195,7 @@ public class DeviceService {
 
 			REG_R_TARGET_RPM_MIN,
 			REG_R_TARGET_RPM_MAX,
+			REG_R_TRACKING_INTERVAL,   // 0x64 интервал слежения по рекуператору
 			REG_R_TARGET_RPM_STEP,
 			REG_RECUP_STATE  // 0x00A4 RecupState — текущее состояние рекуператора
 		));
@@ -348,6 +352,7 @@ public class DeviceService {
 			.targetRpmMin(getValidScaled(data.get(REG_R_TARGET_RPM_MIN), 10.0))   // Минимальные обороты (об/мин)
 			.targetRpmMax(getValidScaled(data.get(REG_R_TARGET_RPM_MAX), 10.0))   // Максимальные обороты (об/мин)
 			.targetRpmStep(getValidScaled(data.get(REG_R_TARGET_RPM_STEP), 10.0))  // Шаг калибровки (об/мин)
+			.recuperatorTrackingInterval(data.get(REG_R_TRACKING_INTERVAL) != null ? data.get(REG_R_TRACKING_INTERVAL).doubleValue() : null)
 			.build();
 		
 		TempSettingsDto tempSettings = TempSettingsDto.builder()
@@ -364,6 +369,9 @@ public class DeviceService {
 			.waterMinTNoWork(getValidScaled(data.get(REG_T_WATER_NO_WORK), 10.0))
 			.waterMinTWork(getValidScaled(data.get(REG_T_WATER_WORK), 10.0))
 			.radTempFail(getValidScaled(data.get(REG_T_RAD_FZ_FAIL), 10.0))
+			.valveStartupPositionProc(data.get(REG_T_VALVE_STARTUP_POS) != null ? data.get(REG_T_VALVE_STARTUP_POS).doubleValue() : null)
+			.tempControlAlgorithm(getValidOrNull(data.get(REG_T_CTRL_ALGORITHM)))
+			.tempTrackingInterval(data.get(REG_T_TRACKING_INTERVAL) != null ? data.get(REG_T_TRACKING_INTERVAL).doubleValue() : null)
 			.build();
 		
 		return DashboardData.builder()
@@ -462,8 +470,9 @@ public class DeviceService {
 		Double bt2 = getTempFromReg(data, REG_T_BT2);
 		if (bt3 == null || bt10 == null || bt2 == null) return null;
 		double denom = Math.abs(bt3 - bt2);
-		if (denom < 1e-6) return null; // избегаем деления на ноль
-		return 100.0 * Math.abs(bt3 - bt10) / denom;
+		if (denom < 1e-6) return null; 
+		double efficiency = 100.0 * Math.abs(bt3 - bt10) / denom;
+		return Math.min(efficiency, 100.0); // не может быть больше 100%
 	}
 
 	private Double getTempFromReg(Map<Integer, Integer> data, int reg) {

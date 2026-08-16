@@ -18,5 +18,9 @@ public class UpdateTempSettingsRequest {
     private Double hotValveMinProc;
     private Double waterMinTNoWork;
     private Double waterMinTWork;
+
+    private Double valveStartupPositionProc;
+    private Integer tempControlAlgorithm;
+    private Double tempTrackingInterval;
 }
 

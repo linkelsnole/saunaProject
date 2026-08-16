@@ -11,6 +11,7 @@ public class UpdateRecupSettingsReq {
     private Double targetRpmMin;   // Минимальные обороты (об/мин)
     private Double targetRpmMax;   // Максимальные обороты (об/мин)
     private Double targetRpmStep;  // Шаг калибровки (об/мин)
+    private Double recuperatorTrackingInterval;
 }
 
 

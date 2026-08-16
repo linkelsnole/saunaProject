@@ -255,7 +255,7 @@ const Schema = () => {
 		}
 		if (id === 'R_TARGET') {
 			const target = data?.recupTargetRpm;
-			return target != null ? `${Number(target).toFixed(1)} об/мин` : '-- об/мин';
+			return target != null ? `${Number(target).toFixed(2)} об/мин` : '-- об/мин';
 		}
 		const sensor = getRecuperator(id);
 		const value = sensor?.value;

@@ -114,7 +114,10 @@ public class DeviceController {
 				request.getNeutralZoneT(),
 				request.getHotValveMinProc(),
 				request.getWaterMinTNoWork(),
-				request.getWaterMinTWork()
+				request.getWaterMinTWork(),
+				request.getValveStartupPositionProc(),
+				request.getTempControlAlgorithm(),
+				request.getTempTrackingInterval()
 			);
 			return ResponseEntity.ok().build();
 		} catch (IOException e) {
@@ -130,7 +133,8 @@ public class DeviceController {
 			settingsService.updateRecuperatorSettings(
 				request.getTargetRpmMin(),
 				request.getTargetRpmMax(),
-				request.getTargetRpmStep()
+				request.getTargetRpmStep(),
+				request.getRecuperatorTrackingInterval()
 			);
 			return ResponseEntity.ok().build();
 		} catch (IOException e) {
@@ -167,7 +171,10 @@ public class DeviceController {
 			|| request.getNeutralZoneT() != null
 			|| request.getHotValveMinProc() != null
 			|| request.getWaterMinTNoWork() != null
-			|| request.getWaterMinTWork() != null;
+			|| request.getWaterMinTWork() != null
+			|| request.getValveStartupPositionProc() != null
+			|| request.getTempControlAlgorithm() != null
+			|| request.getTempTrackingInterval() != null;
 	}
 	
 

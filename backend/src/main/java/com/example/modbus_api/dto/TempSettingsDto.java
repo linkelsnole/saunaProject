@@ -32,5 +32,9 @@ public class TempSettingsDto {
     private Double waterMinTNoWork;
     private Double waterMinTWork;
     private Double radTempFail;
+
+    private Double valveStartupPositionProc;
+    private Integer tempControlAlgorithm;
+    private Double tempTrackingInterval;
 }
 

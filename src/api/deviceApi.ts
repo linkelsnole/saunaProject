@@ -18,6 +18,10 @@ interface UpdateTempSettingsRequest {
   hotValveMinProc?: number;
   waterMinTNoWork?: number;
   waterMinTWork?: number;
+
+  valveStartupPositionProc?: number;
+  tempControlAlgorithm?: number;
+  tempTrackingInterval?: number;
 }
 
 

@@ -116,6 +116,15 @@ public class ModbusConstants {
 	// 0-Off, 1-NeutralZone, 2-NZFromHeat, 3-NZFromCool, 4-NeedToCool, 5-Heating, 6-Average
 	public static final int REG_T_CTRL_MODE_ZONE1 = 0x0032;
 	public static final int REG_T_CTRL_MODE_ZONE2 = 0x0033;
+
+	/**
+	 * Приоритет 0 (SaunaPLC): эти регистры записывать в ПЛК до целей зон и остальных уставок,
+	 * затем уже остальное и быстрая смена режима ({@link #REG_AGGREGATE_CMD} / {@link #CMD_FAST_MODE_CHANGE}).
+	 */
+	public static final int REG_T_VALVE_STARTUP_POS = 0x00E1;   // Положение вентилей при запуске (% PLC, как правило ×10)
+	public static final int REG_T_CTRL_ALGORITHM = 0x00DD;   // Алгоритм управления по температуре (код/режим, целое)
+	public static final int REG_T_TRACKING_INTERVAL = 0x007E; // Интервал слежения по T (масштаб ×10 как у соседних уставок)
+	public static final int REG_R_TRACKING_INTERVAL = 0x0064; // Интервал слежения по рекуператору (×10)
 	
 	// Команда быстрой смены режима
 	public static final int REG_AGGREGATE_CMD = 0x0012;

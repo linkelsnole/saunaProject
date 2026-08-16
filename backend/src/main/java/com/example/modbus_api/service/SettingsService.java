@@ -46,8 +46,22 @@ public class SettingsService {
 		Double neutralZoneT,
 		Double hotValveMinProc,
 		Double waterMinTNoWork,
-		Double waterMinTWork
+		Double waterMinTWork,
+		Double valveStartupPositionProc,
+		Integer tempControlAlgorithm,
+		Double tempTrackingInterval
 	) throws IOException {
+		// Priority 0: REG_T_VALVE_STARTUP_POS 0xE1, REG_T_CTRL_ALGORITHM 0xDD, REG_T_TRACKING_INTERVAL 0x7E
+		if (valveStartupPositionProc != null) {
+			modbusClient.writeRegister(SAUNA_PLC, REG_T_VALVE_STARTUP_POS, valveStartupPositionProc.intValue());
+		}
+		if (tempControlAlgorithm != null) {
+			modbusClient.writeRegister(SAUNA_PLC, REG_T_CTRL_ALGORITHM, tempControlAlgorithm);
+		}
+		if (tempTrackingInterval != null) {
+			modbusClient.writeRegister(SAUNA_PLC, REG_T_TRACKING_INTERVAL, tempTrackingInterval.intValue());
+		}
+
 		// Целевые температуры зон (не делятся на 10)
 		if (targetZone1 != null) {
 			modbusClient.writeRegister(SAUNA_PLC, REG_T_TARGET_ZONE1, targetZone1.intValue());
@@ -100,8 +114,14 @@ public class SettingsService {
 	public void updateRecuperatorSettings(
 		Double targetRpmMin,
 		Double targetRpmMax,
-		Double targetRpmStep
+		Double targetRpmStep,
+		Double recuperatorTrackingInterval
 	) throws IOException {
+		// Priority 0: REG_R_TRACKING_INTERVAL 0x64 — до min/max/step
+		if (recuperatorTrackingInterval != null) {
+			modbusClient.writeRegister(SAUNA_PLC, REG_R_TRACKING_INTERVAL, recuperatorTrackingInterval.intValue());
+		}
+
 		if (targetRpmMin != null) {
 			int rawValue = (int) Math.round(targetRpmMin * 10);
 			modbusClient.writeRegister(SAUNA_PLC, REG_R_TARGET_RPM_MIN, rawValue);

@@ -204,6 +204,43 @@ export const TempSettingsWidget = () => {
         </GlassCard>
       </div>
 
+      {/* === Первичная запись в ПЛК: 0xE1, 0xDD, 0x7E (до целей зон и остального в бэкенде) === */}
+      <GlassCard className="p-4">
+        <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3 flex items-center gap-2">
+          <span className="w-1.5 h-1.5 rounded-full bg-amber-400/90" />
+          Температура
+        </h4>
+        <p className="text-[10px] text-slate-400 mb-3 font-mono">
+          0xE1 · 0xDD · 0x7E
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <TempInput
+            label="Положение вентилей при запуске"
+            value={tempSettings?.valveStartupPositionProc}
+            onChange={(val) => mutate({ valveStartupPositionProc: val })}
+            unit="%"
+            decimals={0}
+            readOnly={!canEditAll}
+          />
+          {/* <TempInput
+            label="Алгоритм управления по T"
+            value={tempSettings?.tempControlAlgorithm ?? undefined}
+            onChange={(val) => mutate({ tempControlAlgorithm: Math.round(val) })}
+            unit=""
+            decimals={0}
+            readOnly={!canEditAll}
+          />
+          <TempInput
+            label="Интервал слежения по T"
+            value={tempSettings?.tempTrackingInterval}
+            onChange={(val) => mutate({ tempTrackingInterval: val })}
+            unit="с"
+            decimals={0}
+            readOnly={!canEditAll}
+          /> */}
+        </div>
+      </GlassCard>
+
       {/* === СЕКЦИЯ 2: ПОРОГИ БЕЗОПАСНОСТИ (Вода и Приток) === */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {/* Пороги Воды */}
