@@ -47,4 +47,6 @@ public class DashboardData {
     private Double recupTargetRpm;   // Обороты вала рекуператора (целевые), об/мин
     private Double recupCurrentRpm;   // Обороты вала, об/мин
     private Double recupSpeedRpm;     // Скорость вращения, об/мин
+
+    private CalibrationData calibration;
 }

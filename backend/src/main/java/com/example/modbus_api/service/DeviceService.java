@@ -10,17 +10,16 @@ import com.example.modbus_api.dto.RecuperatorStatusDto;
 import com.example.modbus_api.dto.ManualSettingsDto;
 import com.example.modbus_api.dto.TempSettingsDto;
 import com.example.modbus_api.dto.RecuperatorSettingsDto;
+import com.example.modbus_api.dto.CalibrationData;
 
 import java.util.Map;
 import java.util.List;
 import java.util.Arrays;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.io.IOException;
 
 import static com.example.modbus_api.service.ModbusConstants.*;
-import com.example.modbus_api.modbus.ModbusAPIClient;
-import com.example.modbus_api.modbus.legacy.ArchESSEvent;
-import com.example.modbus_api.modbus.legacy.IntegerList;
 
 
 @Service
@@ -64,27 +63,10 @@ public class DeviceService {
 		System.out.println("DEBUG: Команда выключения отправлена, текущее состояние: " + currentState + " - " + stateName);
 	}
 
-	public List<ArchESSEvent> getSystemEvents(int lastMinutes) throws IOException {
-		modbusClient.ensureConnection();
-
-		IntegerList types = new IntegerList();
-		types.add(16); // EventPLC - Сообщения модуля управления
-		types.add(3);  // EventExternal
-		types.add(4);  // EventSystem
-		types.add(6);  // EventFailure (Аварии)
-
-		ArrayList<ArchESSEvent> events = new ModbusAPIClient.APICall<ArrayList<ArchESSEvent>>() {
-			@Override
-			public retrofit2.Call<ArrayList<ArchESSEvent>> apiFun() {
-				return modbusClient.getApi().getEventsList(
-					modbusClient.getSessionToken(),
-					lastMinutes,
-					types
-				);
-			}
-		}.call();
-
-		return events != null ? events : new ArrayList<>();
+	public boolean isCalibratingState() throws IOException {
+		Map<Integer, Integer> results = modbusClient.readRegisters(SAUNA_PLC, Collections.singletonList(REG_R_STATE));
+		int stateCode = results.getOrDefault(REG_R_STATE, 0);
+		return (stateCode & 32) != 0;
 	}
 
 	public DashboardData getDashboardData() throws IOException {
@@ -398,6 +380,9 @@ public class DeviceService {
 			.recupTargetRpm(recupTargetRpm)
 			.recupCurrentRpm(recupCurrentRpm)
 			.recupSpeedRpm(recupSpeedRpm)
+			.calibration(CalibrationData.builder()
+				.calibrating(stateCode != null && (stateCode & 32) != 0)
+				.build())
 			.build();
 	}
 

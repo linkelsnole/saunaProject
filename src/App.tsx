@@ -10,7 +10,9 @@ import { PublicRoute } from "@/components/auth/PublicRoute";
 import { ManualSettingsWidget } from "@/components/settings/ManualSettingsWidget";
 import { TempSettingsWidget } from "@/components/settings/TempSettingsWidget";
 import { RecuperatorWidget } from "@/components/settings/RecuperatorWidget";
-import { SystemEventsWidget } from "@/components/logs/SystemEventsWidget";
+import SystemEventsJournal from "@/components/logs/SystemEventsJournal";
+import DashboardLogs from "@/components/logs/DashboardLogs";
+import UpdateSettings from "@/components/settings/UpdateSettings";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/shared/ui/sheet";
 import { useAuth } from "@/contexts/AuthContext";
@@ -23,14 +25,16 @@ const SettingsTabs = ({ isAdmin, compact }: { isAdmin: boolean; compact?: boolea
 	<Tabs defaultValue="volume" className="h-full flex flex-col min-h-0">
 		<TabsList
 			className={cn(
-				isAdmin ? "grid w-full grid-cols-2 md:grid-cols-4 mb-4" : "grid w-full grid-cols-2 md:grid-cols-3 mb-4",
+				isAdmin ? "grid w-full grid-cols-3 md:grid-cols-6 mb-4" : "grid w-full grid-cols-2 md:grid-cols-3 mb-4",
 				compact && "mb-4 flex w-full flex-nowrap justify-start overflow-x-auto"
 			)}
 		>
 			<TabsTrigger value="volume" className={compact ? "flex-none px-4" : ""}>Объем</TabsTrigger>
 			<TabsTrigger value="temperature" className={compact ? "flex-none px-4" : ""}>Температура</TabsTrigger>
 			<TabsTrigger value="recuperator" className={compact ? "flex-none px-4" : ""}>Рекуператор</TabsTrigger>
+			{isAdmin && <TabsTrigger value="errors" className={compact ? "flex-none px-4" : ""}>Ошибки</TabsTrigger>}
 			{isAdmin && <TabsTrigger value="logs" className={compact ? "flex-none px-4" : ""}>Логи</TabsTrigger>}
+			{isAdmin && <TabsTrigger value="update" className={compact ? "flex-none px-4" : ""}>Обновление</TabsTrigger>}
 		</TabsList>
 		<TabsContent value="volume" className="flex-1 overflow-y-auto">
 			<ManualSettingsWidget />
@@ -42,8 +46,18 @@ const SettingsTabs = ({ isAdmin, compact }: { isAdmin: boolean; compact?: boolea
 			<RecuperatorWidget />
 		</TabsContent>
 		{isAdmin && (
-			<TabsContent value="logs" className="flex-1 overflow-hidden">
-				<SystemEventsWidget />
+			<TabsContent value="errors" className="flex-1 overflow-y-auto">
+				<SystemEventsJournal />
+			</TabsContent>
+		)}
+		{isAdmin && (
+			<TabsContent value="logs" className="flex-1 overflow-y-auto">
+				<DashboardLogs />
+			</TabsContent>
+		)}
+		{isAdmin && (
+			<TabsContent value="update" className="flex-1 overflow-y-auto">
+				<UpdateSettings />
 			</TabsContent>
 		)}
 	</Tabs>
