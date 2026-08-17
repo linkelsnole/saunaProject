@@ -7,7 +7,12 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
+
+  // Пока идёт bootstrap-refresh, не показываем ни форму, ни контент
+  if (isLoading) {
+    return <div className="min-h-screen bg-background" />;
+  }
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
@@ -15,4 +20,3 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   return <>{children}</>;
 }
-
