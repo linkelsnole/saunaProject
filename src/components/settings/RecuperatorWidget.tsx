@@ -10,7 +10,7 @@ const RecuperatorRow = ({ label, value, unit }: { label: string; value: number |
   const unitLabel = unit ?? t('units.rpm');
 
   return (
-    <div className="flex justify-between items-center py-3 px-4 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 transition-colors">
+    <div className="flex justify-between items-center py-3 px-4 rounded-xl border border-slate-200 bg-white hover:border-slate-300 transition-colors">
       <span className="text-sm text-slate-600 font-medium">{label}</span>
       <span className="font-mono text-lg font-bold text-slate-800">
         {value != null ? value.toFixed(1) : '-'} <span className="text-xs text-slate-400 font-normal ml-1">{unitLabel}</span>
@@ -99,22 +99,22 @@ export const RecuperatorWidget = () => {
   const recuperatorSettings = data?.recuperatorSettings;
 
   const getRecupStateColor = (code: number | null | undefined) => {
-    if (code == null) return 'bg-slate-100/70 text-slate-500';
+    if (code == null) return 'bg-slate-100 text-slate-500';
     switch (code) {
-      case 0: return 'bg-slate-100/70 text-slate-600';
-      case 1: return 'bg-emerald-100/70 text-emerald-700';
-      case 2: return 'bg-amber-100/70 text-amber-700';
-      case 3: return 'bg-blue-100/70 text-blue-700';
-      case 4: return 'bg-orange-100/70 text-orange-700';
-      default: return 'bg-slate-100/70 text-slate-500';
+      case 0: return 'bg-slate-100 text-slate-600';
+      case 1: return 'bg-emerald-100 text-emerald-700';
+      case 2: return 'bg-amber-100 text-amber-700';
+      case 3: return 'bg-blue-100 text-blue-700';
+      case 4: return 'bg-orange-100 text-orange-700';
+      default: return 'bg-slate-100 text-slate-500';
     }
   };
 
   return (
     <div className="space-y-6 pb-6">
       {/* === СЕКЦИЯ 1: МОНИТОРИНГ РЕКУПЕРАТОРА === */}
-      <div className="space-y-3">
-        <div className="flex justify-between items-center py-3 px-4 rounded-lg border border-slate-200 bg-white">
+      <div className="space-y-3 animate-in fade-in fill-mode-backwards duration-500 motion-reduce:animate-none">
+        <div className="flex justify-between items-center py-3 px-4 rounded-xl border border-slate-200 bg-white">
           <span className="text-sm text-slate-600 font-medium">{t('recuperatorWidget.state')}</span>
           <span
             className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${getRecupStateColor(data?.recupStateCode)}`}
@@ -139,9 +139,9 @@ export const RecuperatorWidget = () => {
       </div>
 
 
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 animate-in fade-in fill-mode-backwards duration-500 [animation-delay:80ms] motion-reduce:animate-none">
         <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-4 flex items-center gap-2">
-          <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span> 
+          <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
           {t('recuperatorWidget.setpoints')}
         </h4>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

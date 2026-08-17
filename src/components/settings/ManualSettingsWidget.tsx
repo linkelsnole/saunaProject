@@ -12,9 +12,10 @@ interface ManualInputProps {
   onChange: (val: number) => void;
   unit?: string;
   readOnly?: boolean;
+  className?: string;
 }
 
-const ManualInput = ({ label, value, onChange, unit = '%', readOnly = false }: ManualInputProps) => {
+const ManualInput = ({ label, value, onChange, unit = '%', readOnly = false, className }: ManualInputProps) => {
   const [localValue, setLocalValue] = useState('');
   const [isEditing, setIsEditing] = useState(false);
 
@@ -44,13 +45,15 @@ const ManualInput = ({ label, value, onChange, unit = '%', readOnly = false }: M
   };
 
   return (
-    <GlassCard className="p-5 flex flex-col justify-between h-32 hover:translate-y-[-2px] transition-transform duration-300">
+    <GlassCard
+      className={`p-5 flex flex-col justify-between h-32 transition-colors hover:border-slate-300 animate-in fade-in fill-mode-backwards duration-500 motion-reduce:animate-none ${className ?? ''}`}
+    >
       <div className="flex justify-between items-start">
-        <span className="text-[11px] text-slate-500 font-bold uppercase tracking-widest opacity-80">
+        <span className="text-[11px] text-slate-500 font-semibold uppercase tracking-widest">
           {label}
         </span>
         {!readOnly && (
-          <div className="w-1.5 h-1.5 rounded-full bg-blue-400/50 shadow-[0_0_8px_rgba(96,165,250,0.8)]" />
+          <div className="w-1.5 h-1.5 rounded-full bg-blue-400" />
         )}
       </div>
       <div className="relative mt-auto">
@@ -110,6 +113,7 @@ export const ManualSettingsWidget = () => {
           value={boostPercent}
           onChange={(val) => mutate({ boostPercent: val })}
           readOnly={!canEditVentilation}
+          className="[animation-delay:80ms]"
         />
       </div>
     </div>
