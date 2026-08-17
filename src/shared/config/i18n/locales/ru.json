@@ -73,6 +73,12 @@
       "cooling": "Охлаждение",
       "heating": "Нагрев",
       "tAveraging": "Усреднение по T",
+      "hood": "Вытяжка",
+      "alg2Step0": "Шаг 0",
+      "alg2Tuning": "Настройка",
+      "alg2Stabilization": "Стабилизация",
+      "alg2HeatOff": "Без нагрева",
+      "alg2HeatInsuff": "Недост. нагрев",
       "unknown": "Неизвестно",
       "na": "N/A"
     }

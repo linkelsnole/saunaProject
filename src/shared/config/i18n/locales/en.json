@@ -73,6 +73,12 @@
       "cooling": "Cooling",
       "heating": "Heating",
       "tAveraging": "T averaging",
+      "hood": "Hood",
+      "alg2Step0": "Step 0",
+      "alg2Tuning": "Tuning",
+      "alg2Stabilization": "Stabilization",
+      "alg2HeatOff": "No heating",
+      "alg2HeatInsuff": "Insufficient heating",
       "unknown": "Unknown",
       "na": "N/A"
     }
