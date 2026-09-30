@@ -13,6 +13,7 @@ DESTINATION = '/opt/webpanel/sauna-updater-lab'
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--install-lab', action='store_true', required=True)
+    parser.add_argument('--public-lab', action='store_true', help='Expose the isolated lab on server port 8087')
     args = parser.parse_args()
     options = ['-i', str(Path.home()/'.ssh/deploy_key'), '-o', 'BatchMode=yes',
                '-o', 'StrictHostKeyChecking=yes', '-o', 'ConnectTimeout=8',
@@ -24,7 +25,8 @@ def main():
         ROOT/'tools/deployment/github_release.py', ROOT/'tools/deployment/updater.py',
         ROOT/'tools/deployment/lab_instance.py',
     ]}
-    config = dict(target='lab', root=DESTINATION, preview=True, preview_port=18082,
+    config = dict(target='lab', root=DESTINATION, preview=True, preview_port=8087 if args.public_lab else 18082,
+                  preview_address='0.0.0.0' if args.public_lab else '127.0.0.1',
                   token='/opt/webpanel/.config/sauna-updater-small/github.token')
     payload = json.dumps(dict(files=files, config=config))
     remote = r'''

@@ -1,4 +1,4 @@
-"""Persistent loopback-only laboratory instance. Never invokes service or sudo."""
+"""Persistent isolated laboratory instance. Never invokes service or sudo."""
 import json
 import os
 from pathlib import Path
@@ -68,14 +68,16 @@ def ready(folder, port, expected_index, timeout=120):
     return False
 
 
-def start(folder, root, port):
+def start(folder, root, port, address="127.0.0.1"):
+    if address != "127.0.0.1" and (address, port) != ("0.0.0.0", 8087):
+        raise RuntimeError("Public lab is restricted to port 8087")
     with socket.socket() as sock:
         # Closed HTTP connections may remain in TIME_WAIT after Tomcat exits.
         # Reuse those addresses while still refusing any active listener.
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        sock.bind(('127.0.0.1', port))  # Fail without killing anything if port is already occupied.
+        sock.bind((address, port))  # Fail without killing anything if port is already occupied.
     command = ['java', '-Xms64m', '-Xmx256m', '-jar', str(folder/'sauna.jar'),
-               '--spring.profiles.active=prod', '--server.address=127.0.0.1',
+               '--spring.profiles.active=prod', '--server.address=' + address,
                '--server.port=' + str(port), '--modbus.api.ip=127.0.0.1', '--modbus.api.port=1',
                '--modbus.api.log-name=', '--spring.jpa.show-sql=false',
                '--jwt.refresh-cookie-name=sauna_lab_refresh_token',
@@ -91,7 +93,7 @@ def ensure(config, installer):
     folder = instance(config)
     if not (folder/'sauna.jar').exists() or alive(folder):
         return
-    start(folder, folder.parent, config['preview_port'])
+    start(folder, folder.parent, config['preview_port'], config.get('preview_address', '127.0.0.1'))
     index = installer.validate_archive(folder/'sauna.jar', installer.digest(folder/'sauna.jar'))
     if not ready(folder, config['preview_port'], index):
         raise RuntimeError('Lab preview failed to recover; inspect instance/app.log')
@@ -120,7 +122,7 @@ def install(config, candidate, installer):
     try:
         os.replace(new, jar)
         (root/'ui-enabled').touch(mode=0o600)
-        start(folder, root, port)
+        start(folder, root, port, config.get('preview_address', '127.0.0.1'))
         if not ready(folder, port, index):
             raise RuntimeError('Lab preview did not become ready')
     except BaseException:
@@ -133,7 +135,7 @@ def install(config, candidate, installer):
                     if path.exists():
                         os.replace(path, folder/('failed.db' + suffix))
                 shutil.copy2(old_db, db)
-            start(folder, root, port)
+            start(folder, root, port, config.get('preview_address', '127.0.0.1'))
             old_index = installer.validate_archive(old, installer.digest(old))
             if not ready(folder, port, old_index):
                 raise RuntimeError('Lab rollback needs inspection; live services were not touched')

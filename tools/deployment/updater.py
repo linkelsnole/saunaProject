@@ -53,8 +53,10 @@ def load_config(path):
     mode = token.stat()
     if mode.st_uid != os.getuid() or stat.S_IMODE(mode.st_mode) != 0o600:
         raise RuntimeError('GitHub token must be owned by this user with mode 0600')
-    if config.get('preview') and (config['target'] != 'lab' or config.get('preview_port') != 18082):
-        raise RuntimeError('Preview is restricted to lab port 18082')
+    if config.get('preview') and (config['target'] != 'lab' or
+            (config.get('preview_address', '127.0.0.1'), config.get('preview_port')) not in
+            (('127.0.0.1', 18082), ('0.0.0.0', 8087))):
+        raise RuntimeError('Preview supports loopback 18082 or public lab 8087 only')
     if config['target'] == 'production':
         if config.get('enabled') is not True or config.get('service') != 'webpanel-s':
             raise RuntimeError('Production deployment is disabled')

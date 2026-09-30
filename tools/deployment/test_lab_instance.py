@@ -24,6 +24,12 @@ class LabInstanceTests(unittest.TestCase):
                 with self.assertRaises(RuntimeError): lab.stop(root)
                 kill.assert_not_called()
 
+    def test_public_lab_refuses_production_port(self):
+        with patch.object(lab.subprocess, 'Popen') as process:
+            with self.assertRaises(RuntimeError):
+                lab.start(Path('/unused'), Path('/unused'), 8082, '0.0.0.0')
+            process.assert_not_called()
+
     def test_restart_accepts_time_wait_but_refuses_active_listener(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
