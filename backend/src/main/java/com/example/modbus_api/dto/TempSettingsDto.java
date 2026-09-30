@@ -10,6 +10,12 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class TempSettingsDto {
+    private Double outflowTarget;
+    private Double inflowTargetZone1;
+    private Double inflowTargetZone2;
+    private OrpSettingsDto orpZone1;
+    private OrpSettingsDto orpZone2;
+
     // Целевые температуры зон (в градусах Цельсия)
     private Double targetZone1;
     private Double targetZone2;
@@ -38,4 +44,3 @@ public class TempSettingsDto {
     private Integer tempControlAlgorithm;
     private Double tempTrackingInterval;
 }
-

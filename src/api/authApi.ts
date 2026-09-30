@@ -1,128 +1,104 @@
 import type { AuthRequest, AuthResponse, AuthUser } from './authTypes';
 
-// Access-токен живёт только в памяти вкладки, refresh-токен — в httpOnly cookie.
-// В localStorage ничего не пишем.
+// The access token stays in memory; each app has its own HttpOnly session cookie.
 let accessToken: string | null = null;
+let authVersion = 0;
+let refreshPromise: Promise<AuthResponse> | null = null;
 
 export const getAccessToken = (): string | null => accessToken;
-
-export const setAccessToken = (token: string | null) => {
+export const setAccessToken = (token: string | null): void => {
+  authVersion += 1;
   accessToken = token;
 };
+export const clearAccessToken = (): void => setAccessToken(null);
 
-export const clearAccessToken = () => setAccessToken(null);
+export class SessionExpiredError extends Error {
+  constructor() {
+    super('Session expired');
+    this.name = 'SessionExpiredError';
+  }
+}
 
-// Единственный параллельный refresh: все 401 ждут один и тот же запрос
-let refreshPromise: Promise<string | null> | null = null;
+export const isSessionExpired = (error: unknown): boolean => error instanceof SessionExpiredError;
 
 const isAuthEndpoint = (url: string) =>
   url.includes('/auth/login') || url.includes('/auth/refresh') || url.includes('/auth/logout');
 
-const isAuthFailureStatus = (status: number) => status === 401 || status === 403;
-
-async function parseErrorMessage(response: Response): Promise<string | null> {
-  try {
-    const data = await response.json();
-    return data?.error ?? data?.message ?? null;
-  } catch {
-    return null;
-  }
-}
-
-async function authFetch(url: string, options: RequestInit = {}): Promise<Response> {
-  return fetch(url, {
-    credentials: 'include',
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(options.headers ?? {}),
-    },
-  });
+function withAuthHeader(options: RequestInit, token: string | null): RequestInit {
+  const headers = new Headers(options.headers);
+  if (!headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
+  if (token) headers.set('Authorization', `Bearer ${token}`);
+  return { ...options, credentials: 'include', headers };
 }
 
 export async function loginRequest(payload: AuthRequest): Promise<AuthResponse> {
-  const response = await authFetch('/api/v1/auth/login', {
-    method: 'POST',
-    body: JSON.stringify(payload),
-  });
-
+  const response = await fetch('/api/v1/auth/login', withAuthHeader({
+    method: 'POST', body: JSON.stringify(payload),
+  }, null));
   if (!response.ok) {
-    const message = await parseErrorMessage(response);
-    throw new Error(message ?? '');
+    const data = await response.json().catch(() => null);
+    throw new Error(data?.message ?? data?.error ?? '');
   }
-
   const data: AuthResponse = await response.json();
   setAccessToken(data.accessToken);
   return data;
 }
 
-export async function refreshRequest(): Promise<AuthResponse> {
-  const response = await authFetch('/api/v1/auth/refresh', { method: 'POST' });
-
-  if (!response.ok) {
-    clearAccessToken();
-    throw new Error('Refresh failed');
-  }
-
+async function requestRefresh(): Promise<AuthResponse> {
+  const version = authVersion;
+  const response = await fetch('/api/v1/auth/refresh', withAuthHeader({ method: 'POST' }, null));
+  if (version !== authVersion) throw new Error('Authentication changed during refresh');
+  if (response.status === 401) throw new SessionExpiredError();
+  if (!response.ok) throw new Error(`Session refresh unavailable (${response.status})`);
   const data: AuthResponse = await response.json();
-  setAccessToken(data.accessToken);
+  if (version !== authVersion) throw new Error('Authentication changed during refresh');
+  if (typeof data?.accessToken !== 'string' || !data.accessToken) {
+    throw new Error('Invalid session refresh response');
+  }
+  accessToken = data.accessToken;
   return data;
 }
 
-export async function logoutRequest(): Promise<void> {
-  await fetchWithAuth('/api/v1/auth/logout', { method: 'POST' });
+// Bootstrap and API requests share the same refresh within this tab.
+export function refreshRequest(): Promise<AuthResponse> {
+  if (!refreshPromise) {
+    refreshPromise = requestRefresh().finally(() => { refreshPromise = null; });
+  }
+  return refreshPromise;
+}
+
+export async function fetchWithAuth(url: string, options: RequestInit = {}): Promise<Response> {
+  const originalToken = getAccessToken();
+  const version = authVersion;
+  const response = await fetch(url, withAuthHeader(options, originalToken));
+  // A 403 means insufficient permissions, not an expired login.
+  if (response.status !== 401 || isAuthEndpoint(url)) return response;
+  if (version !== authVersion) throw new Error('Authentication changed during request');
+
+  // A slower request may have used the previous token while another refreshed it.
+  if (accessToken && accessToken !== originalToken) {
+    return fetch(url, withAuthHeader(options, accessToken));
+  }
+  try {
+    const refreshed = await refreshRequest();
+    return fetch(url, withAuthHeader(options, refreshed.accessToken));
+  } catch (error) {
+    if (isSessionExpired(error) && version === authVersion) {
+      clearAccessToken();
+      if (window.location.pathname !== '/login') window.location.href = '/login';
+      return response;
+    }
+    // Keep the session on network/5xx failures; polling can retry after recovery.
+    throw error;
+  }
 }
 
 export async function getCurrentUser(): Promise<AuthUser> {
   const response = await fetchWithAuth('/api/v1/auth/me');
-  if (!response.ok) {
-    throw new Error('Failed to get current user');
-  }
+  if (!response.ok) throw new Error('Failed to get current user');
   return response.json();
 }
 
-const refreshAccessToken = async (): Promise<string | null> => {
-  const data = await refreshRequest();
-  return data.accessToken ?? null;
-};
-
-function withAuthHeader(options: RequestInit, token: string | null): RequestInit {
-  return {
-    credentials: 'include',
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(options.headers ?? {}),
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-  };
-}
-
-export async function fetchWithAuth(url: string, options: RequestInit = {}): Promise<Response> {
-  const response = await fetch(url, withAuthHeader(options, getAccessToken()));
-
-  if (!isAuthFailureStatus(response.status) || isAuthEndpoint(url)) {
-    return response;
-  }
-
-  // Access-токен истёк: пробуем один общий refresh и повторяем запрос
-  try {
-    if (!refreshPromise) {
-      refreshPromise = refreshAccessToken().finally(() => {
-        refreshPromise = null;
-      });
-    }
-
-    const refreshedToken = await refreshPromise;
-    if (refreshedToken) {
-      return fetch(url, withAuthHeader(options, refreshedToken));
-    }
-  } catch {
-    clearAccessToken();
-    if (window.location.pathname !== '/login') {
-      window.location.href = '/login';
-    }
-  }
-
-  return response;
+export async function logoutRequest(): Promise<void> {
+  await fetch('/api/v1/auth/logout', withAuthHeader({ method: 'POST' }, getAccessToken()));
 }

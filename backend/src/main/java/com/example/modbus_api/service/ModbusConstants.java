@@ -5,26 +5,23 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class ModbusConstants {
-	public static final String SAUNA_PLC = "SaunaPLC"; 
+	public static final String SAUNA_PLC = "Sauna7000PLC";
 
 	public static final Map<Integer, String> SYSTEM_STATES;
 	static {
 			Map<Integer, String> states = new HashMap<>();
 			states.put(1, "Выключено");                                    
-			states.put(2, "Авария фатальная");                             
+			states.put(2, "Крах: коммуникации (modbus)");
 			states.put(4, "Отключение по сбою");                          
 			states.put(8, "Быстрый запуск");                              
 			states.put(16, "Начальный запуск");                           
 			states.put(32, "Калибровка");                                 
 			states.put(64, "Вентилирование");                           
 			states.put(128, "Остановка агрегата, выбег");                 
-			states.put(256, "Продувка датчика давления");            
-			states.put(512, "Охлаждение калорифера");                
-			states.put(1024, "Остаточная работа теплообменника");         
-			states.put(2048, "Чистительный продув теплообменника");    
-			states.put(4096, "Вытяжка");                          
-			states.put(8192, "Калибровка вращения теплообменника");       
-			states.put(16384, "Размораживание теплообменника");          
+			states.put(256, "Сбой");
+			states.put(512, "Авария");
+			states.put(1024, "Крах: заморозка");
+			states.put(2048, "Крах");
 			SYSTEM_STATES = Collections.unmodifiableMap(states);
 	}
 
@@ -79,8 +76,8 @@ public class ModbusConstants {
 	public static final int REG_F_VC2 = 0x00AE; //клапан - справа
 
 	// ТЕМПЕРАТУРЫ ЗОН
-	public static final int REG_T_ZONE1 = 0x0025;
-	public static final int REG_T_ZONE2 = 0x00CE;
+	public static final int REG_T_ZONE1 = ModbusRegisterMap.HEATER_ZONE_1 + ModbusRegisterMap.INFLOW_TARGET_OFFSET;
+	public static final int REG_T_ZONE2 = ModbusRegisterMap.HEATER_ZONE_2 + ModbusRegisterMap.INFLOW_TARGET_OFFSET;
 
 	public static final int REG_R_RECUP_SPEED = 0x00B8; // обороты вала
 	public static final int REG_R_SPEED = 0x0082; // скорость вращения
@@ -88,7 +85,7 @@ public class ModbusConstants {
 	// public static final int REG_R_EFFICIENCY = 0x008A;  // КПД теперь считаем: abs(BT3-BT10)/abs(BT3-BT2)
 	
 	public static final int REG_R_TARGET = 0x0084;
-	public static final int REG_R_STATE = 0x0010;
+	public static final int REG_R_STATE = ModbusRegisterMap.AGGREGATE_STATE;
 	public static final int MASK_STATE_ALARM = 0x0004;
 	public static final int MASK_STATE_VENTILATION = 0x0040;
 	
@@ -101,38 +98,40 @@ public class ModbusConstants {
 	
 	// --- ТЕМПЕРАТУРНЫЕ УСТАВКИ ---
 	// Целевые температуры зон
-	public static final int REG_T_TARGET_ZONE1 = 0x0025; // T manual
-	public static final int REG_T_TARGET_ZONE2 = 0x00CE; // T manual 2
+	public static final int REG_T_TARGET_ZONE1 = REG_T_ZONE1;
+	public static final int REG_T_TARGET_ZONE2 = REG_T_ZONE2;
 	
 	// Пороги температуры воды
-	public static final int REG_T_WATER_WARN = 0x00C3;  // снижение оборотов
-	public static final int REG_T_WATER_FAIL = 0x00C4;  // авария
+	public static final int REG_T_WATER_WARN = ModbusRegisterMap.TEMP_WATER_WARN;
+	public static final int REG_T_WATER_FAIL = ModbusRegisterMap.TEMP_WATER_FAIL;
 	
 	// Пороги температуры ПВ 
-	public static final int REG_T_INFLOW_WARN = 0x00C5; // снижение оборотов
-	public static final int REG_T_INFLOW_FAIL = 0x00C6; // авария
+	public static final int REG_T_INFLOW_WARN = ModbusRegisterMap.TEMP_INFLOW_WARN;
+	public static final int REG_T_INFLOW_FAIL = ModbusRegisterMap.TEMP_INFLOW_FAIL;
 	
 	// Режимы управления (только чтение)
 	// 0-Off, 1-NeutralZone, 2-NZFromHeat, 3-NZFromCool, 4-NeedToCool, 5-Heating, 6-Average,
 	// 7-Hood, 8-Alg2Step0, 9-Alg2Driving, 10-Alg2Stabilise, 11-Alg2HeatOff, 12-Alg2HeatInsuff
-	public static final int REG_T_CTRL_MODE_ZONE1 = 0x0032;
-	public static final int REG_T_CTRL_MODE_ZONE2 = 0x0033;
+	public static final int REG_T_CTRL_MODE_ZONE1 = ModbusRegisterMap.HEATER_ZONE_1 + ModbusRegisterMap.TEMPERATURE_STATE_OFFSET;
+	public static final int REG_T_CTRL_MODE_ZONE2 = ModbusRegisterMap.HEATER_ZONE_2 + ModbusRegisterMap.TEMPERATURE_STATE_OFFSET;
 
 	/**
-	 * Приоритет 0 (SaunaPLC): эти регистры записывать в ПЛК до целей зон и остальных уставок,
+	 * Приоритет 0 (Sauna7000PLC): эти регистры записывать в ПЛК до целей зон и остальных уставок,
 	 * затем уже остальное и быстрая смена режима ({@link #REG_AGGREGATE_CMD} / {@link #CMD_FAST_MODE_CHANGE}).
 	 */
-	public static final int REG_T_VALVE_STARTUP_POS = 0x00E1;   // Положение вентилей при запуске (% PLC, как правило ×10)
+	public static final int REG_T_VALVE_STARTUP_POS = ModbusRegisterMap.TEMP_VALVE_START_POSITION;
 	public static final int REG_T_CTRL_ALGORITHM = 0x00DD;   // Алгоритм управления по температуре (код/режим, целое)
 	public static final int REG_T_TRACKING_INTERVAL = 0x007E; // Интервал слежения по T (масштаб ×10 как у соседних уставок)
-	public static final int REG_R_TRACKING_INTERVAL = 0x0064; // Интервал слежения по рекуператору (×10)
+
+	// Уставка рекуператора
+	public static final int REG_R_TRACKING_INTERVAL = ModbusRegisterMap.RECUPERATOR_TRACKING_INTERVAL; // DQualityBack, секунды
 	
 	// Команда быстрой смены режима
-	public static final int REG_AGGREGATE_CMD = 0x0012;
+	public static final int REG_AGGREGATE_CMD = ModbusRegisterMap.AGGREGATE_COMMAND;
 	public static final int CMD_FAST_MODE_CHANGE = 6;
 
 	// Задвижки
-	public static final int REG_Z_WORKSTATE = 0x008C;
+	public static final int REG_Z_WORKSTATE = ModbusRegisterMap.WORK_STATE;
 	public static final int MASK_DAMPER_SUPPLY = 0x0001;  // бит 0 - задвижка притока
 	public static final int MASK_DAMPER_EXHAUST = 0x0002; // бит 1 - задвижка вытяжки
 
@@ -142,45 +141,46 @@ public class ModbusConstants {
 
 
 	//Целевые обороты (Все в оборотах в минуту измеряются)
-	public static final int TARGET_R_REG = 0x0081; // делить на 100
-	public static final int CURRENT_R_REG = 0x0080;// Обороты вала (делить на 100)
-	public static final int SPEED_R_REG = 0x2C0; //Скорость вращения (делить на 10)
+	public static final int TARGET_R_REG = ModbusRegisterMap.RECUPERATOR_TARGET_RPM; // x100
+	public static final int CURRENT_R_REG = ModbusRegisterMap.RECUPERATOR_CURRENT_RPM; // x100
+	public static final int SPEED_R_REG = ModbusRegisterMap.RECUPERATOR_MOTOR_RPM; // x10
 	
 	
 
 	// --- НОВЫЕ ТЕМПЕРАТУРНЫЕ УСТАВКИ (MESetting) 22.01.2026 ---
-    public static final int REG_T_NEUTRAL_ZONE = 0x006E;    // DTNeutral
-    public static final int REG_HOT_VALVE_MIN_PROC = 0x00D2; // HotValveMinProc
-    public static final int REG_T_WATER_NO_WORK = 0x00D3;   // TWaterNoWork
-    public static final int REG_T_WATER_WORK = 0x00D4;      // TWaterWork
-    public static final int REG_T_RAD_FZ_FAIL = 0x00C7;     // TRadFzFail
+    public static final int REG_T_NEUTRAL_ZONE = ModbusRegisterMap.TEMP_NEUTRAL_ZONE;
+    public static final int REG_HOT_VALVE_MIN_PROC = ModbusRegisterMap.TEMP_HOT_VALVE_MIN;
+    public static final int REG_T_WATER_NO_WORK = ModbusRegisterMap.TEMP_WATER_IDLE_MIN;
+    public static final int REG_T_WATER_WORK = ModbusRegisterMap.TEMP_WATER_RUNNING_MIN;
+    public static final int REG_T_RAD_FZ_FAIL = ModbusRegisterMap.TEMP_RADIATOR_FAIL;
 
     // --- ДАННЫЕ ВЕНТИЛЕЙ (MEDataRegister) 22.01.2026 ---
-    public static final int REG_VALVE_HEAT_POS1 = 0x00AB;   // ValveHeatPos1
-    public static final int REG_VALVE_COOL_POS1 = 0x00AC;   // ValveCoolPos1
-    public static final int REG_VALVE_OPEN_PROC1 = 0x00B9;  // ValveOpenProc
-    public static final int REG_VALVE_HEAT_POS2 = 0x00AD;   // ValveHeatPos2
-    public static final int REG_VALVE_COOL_POS2 = 0x00AE;   // ValveCoolPos2
-    public static final int REG_VALVE_OPEN_PROC2 = 0x00BA;  // ValveOpenProc2
+    public static final int REG_VALVE_HEAT_POS1 = ModbusRegisterMap.HEATER_ZONE_1 + ModbusRegisterMap.HEAT_VALVE_SETTING_OFFSET;
+    public static final int REG_VALVE_COOL_POS1 = ModbusRegisterMap.HEATER_ZONE_1 + ModbusRegisterMap.COOL_VALVE_SETTING_OFFSET;
+    public static final int REG_VALVE_OPEN_PROC1 = ModbusRegisterMap.HEATER_ZONE_1 + ModbusRegisterMap.EXTRA_HEAT_VALVE_SETTING_OFFSET;
+    public static final int REG_VALVE_HEAT_POS2 = ModbusRegisterMap.HEATER_ZONE_2 + ModbusRegisterMap.HEAT_VALVE_SETTING_OFFSET;
+    public static final int REG_VALVE_COOL_POS2 = ModbusRegisterMap.HEATER_ZONE_2 + ModbusRegisterMap.COOL_VALVE_SETTING_OFFSET;
+    public static final int REG_VALVE_OPEN_PROC2 = ModbusRegisterMap.HEATER_ZONE_2 + ModbusRegisterMap.EXTRA_HEAT_VALVE_SETTING_OFFSET;
 
-	//Рекуператор 25.01.2026 (плавающая точка, об/мин, быстрая смена режима)
-    public static final int REG_R_TARGET_RPM_MIN = 0x005D;  // (мин) (сейчас 0 или 0.5 оборотов)
-    public static final int REG_R_TARGET_RPM_MAX = 0x005E;  // (макс) (сейчас от 1 до 7 оборотов может стоять)
-    public static final int REG_R_TARGET_RPM_STEP = 0x0065;  // 0x0065 - шаг калибровки (сейчас 0.1 или 0.3 оборота)
+	// Уставки рекуператора: Power=-2, значение регистра / 100
+    public static final int REG_R_TARGET_RPM_MIN = ModbusRegisterMap.RECUPERATOR_MIN_RPM_SETTING;
+    public static final int REG_R_TARGET_RPM_MAX = ModbusRegisterMap.RECUPERATOR_MAX_RPM_SETTING;
+    public static final int REG_R_TARGET_RPM_STEP = ModbusRegisterMap.RECUPERATOR_RPM_STEP_SETTING;
 
 	// RecupState (MEStateRegister) 0x00A4 — текущее состояние рекуператора
-	public static final int REG_RECUP_STATE = 0x00BB;
+	public static final int REG_RECUP_STATE = ModbusRegisterMap.RECUPERATOR_STATE;
 
 	public static final Map<Integer, String> RECUP_STATES;
 	static {
 		Map<Integer, String> m = new HashMap<>();
 		m.put(0, "Отключен");
 		m.put(1, "Макс. обороты");
-		m.put(2, "Настройка");
+		m.put(2, "Сужение");
 		m.put(3, "Стабилизация");
 		m.put(4, "Врем. остановка");
+		m.put(5, "Расширение");
+		m.put(6, "Откл. по условию");
 		RECUP_STATES = Collections.unmodifiableMap(m);
 	}
 	
 }
-

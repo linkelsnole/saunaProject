@@ -69,9 +69,7 @@ public class AuthController {
         }
 
         Role role = Role.ROLE_USER;
-        if ("admin".equalsIgnoreCase(request.getUsername())) {
-            role = Role.ROLE_ADMIN;
-        }
+        // Administrator roles can only be granted by the authenticated admin API.
 
         AppUser user = AppUser.builder()
                 .username(request.getUsername())

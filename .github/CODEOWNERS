@@ -1,0 +1,6 @@
+# Enable required code-owner review in the GitHub main branch rules for enforcement.
+/.github/ @linkelsnole
+/tools/ @linkelsnole
+/backend/src/test/ @linkelsnole
+/src/**/*.test.ts @linkelsnole
+/src/**/*.test.tsx @linkelsnole

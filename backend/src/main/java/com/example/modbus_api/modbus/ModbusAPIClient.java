@@ -6,7 +6,7 @@ import retrofit2.Response;
 import retrofit2.http.*;
 
 import java.util.ArrayList;
-import com.example.modbus_api.modbus.legacy.ArchESSEvent;
+import com.example.modbus_api.dto.SystemEventDto;
 
 
 
@@ -68,7 +68,7 @@ public class ModbusAPIClient {
 
         /** Прочитать список событий */
         @POST("/api/ess2/events/list")
-        Call<ArrayList<ArchESSEvent>> getEventsList(
+        Call<ArrayList<SystemEventDto>> getEventsList(
             @Header("SessionToken") String token,
             @Query("lastminutes") int lastminutes,
             @Body com.example.modbus_api.modbus.legacy.IntegerList types

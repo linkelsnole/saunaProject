@@ -1,6 +1,6 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import i18n from '@/shared/config/i18n/i18n';
-import { clearAccessToken, loginRequest, logoutRequest, refreshRequest } from '@/api/authApi';
+import { clearAccessToken, loginRequest, logoutRequest, refreshRequest, isSessionExpired } from '@/api/authApi';
 import type { AuthRequest, AuthUser } from '@/api/authTypes';
 
 interface AuthContextType {
@@ -18,7 +18,6 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const bootstrapStartedRef = useRef(false);
 
   const login = useCallback(async (credentials: AuthRequest) => {
     try {
@@ -42,26 +41,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await request;
   }, []);
 
-  // Bootstrap: если refresh-cookie жива, входим без формы логина
+  // A temporary outage must not turn a valid cookie into a forced logout.
   useEffect(() => {
-    if (bootstrapStartedRef.current) {
-      return;
-    }
-    bootstrapStartedRef.current = true;
-
+    let cancelled = false;
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
     const bootstrap = async () => {
       try {
         const refreshed = await refreshRequest();
-        setUser(refreshed.user);
-      } catch {
-        clearAccessToken();
-        setUser(null);
-      } finally {
-        setIsLoading(false);
+        if (!cancelled) {
+          setUser(refreshed.user);
+          setIsLoading(false);
+        }
+      } catch (error) {
+        if (cancelled) return;
+        if (isSessionExpired(error)) {
+          clearAccessToken();
+          setUser(null);
+          setIsLoading(false);
+        } else {
+          retryTimer = setTimeout(() => { void bootstrap(); }, 5000);
+        }
       }
     };
-
     void bootstrap();
+    return () => {
+      cancelled = true;
+      clearTimeout(retryTimer);
+    };
   }, []);
 
   const value = useMemo<AuthContextType>(() => ({

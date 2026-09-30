@@ -19,12 +19,13 @@ npm run lint      # ESLint
 ```bash
 cd backend && bash start.sh         # Dev run (Spring Boot on :8080)
 cd backend && mvn spring-boot:run   # Alternative dev run
-cd backend && mvn clean package -DskipTests  # Full build (includes frontend build)
+cd backend && mvn clean verify  # Full build (includes frontend build)
 ```
 
 ### Deploy to Production
 ```bash
-./deploy.sh   # Builds JAR, SCPs to 212.164.86.237, restarts systemd service
+python3 deploy-small.py --check   # Read-only SSH/service preflight
+# See docs/DEPLOYMENT.md for CI and administrator-confirmed updates.
 ```
 
 ## Architecture
@@ -62,3 +63,9 @@ cd backend && mvn clean package -DskipTests  # Full build (includes frontend bui
 - Backend config: `backend/src/main/resources/application.properties` (Modbus IP/port, SQLite path, JWT secret/expiration)
 - Vite proxy: `vite.config.ts` proxies `/api` to `http://localhost:8080`
 - shadcn config: `components.json`
+
+## Deployment changes
+
+Never weaken tests to make a release pass. Keep CI and test changes reviewable.
+All deployment experiments use /opt/webpanel/sauna-updater-lab. Do not modify production service directories during lab testing.
+The web-panel update dialog is separate from controller firmware updates. Only an administrator can request it; an external process installs the JAR.

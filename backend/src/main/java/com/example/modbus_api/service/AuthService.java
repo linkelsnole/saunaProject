@@ -83,7 +83,7 @@ public class AuthService {
         String refreshTokenValue = CookieUtils.getCookieValue(request, jwtProperties.getRefreshCookieName())
                 .orElseThrow(() -> new AuthException("Refresh token is missing"));
 
-        RefreshToken refreshToken = refreshTokenService.rotateRefreshToken(refreshTokenValue);
+        RefreshToken refreshToken = refreshTokenService.renewRefreshToken(refreshTokenValue);
         CookieUtils.addHttpOnlyCookie(
                 response,
                 jwtProperties.getRefreshCookieName(),

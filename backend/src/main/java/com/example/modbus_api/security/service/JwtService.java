@@ -1,6 +1,7 @@
 package com.example.modbus_api.security.service;
 
 import com.example.modbus_api.config.JwtProperties;
+import com.example.modbus_api.service.DefaultCredentialsRotation;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
@@ -28,6 +29,7 @@ public class JwtService {
         claims.put("roles", userDetails.getAuthorities().stream()
                 .map(Object::toString)
                 .collect(Collectors.toList()));
+        if (DefaultCredentialsRotation.appliesTo(userDetails.getUsername())) claims.put("credentialsVersion", DefaultCredentialsRotation.VERSION);
         Date issuedAt = new Date();
         Date expiration = new Date(issuedAt.getTime() + jwtProperties.getAccessTokenExpirationMs());
 
@@ -45,7 +47,9 @@ public class JwtService {
     }
 
     public boolean isTokenValid(String token, UserDetails userDetails) {
-        String username = extractUsername(token);
+        Claims claims = extractAllClaims(token);
+        String username = claims.getSubject();
+        if (DefaultCredentialsRotation.appliesTo(username) && !DefaultCredentialsRotation.VERSION.equals(claims.get("credentialsVersion", String.class))) return false;
         return username.equals(userDetails.getUsername()) && !isTokenExpired(token);
     }
 
