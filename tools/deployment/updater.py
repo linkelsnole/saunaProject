@@ -20,6 +20,7 @@ import urllib.request
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import deploy_small_remote as installer
 import lab_instance
+import release_history as history
 from github_release import GitHub, find_asset, TAG
 
 
@@ -123,7 +124,9 @@ def production(config, jar, checksum):
     if actual != Path(config['jar']).resolve() or state != 'active':
         raise RuntimeError('Service JAR changed or service was stopped; refusing automatic deployment')
     # Stop/start commands are fixed inside installer, never supplied by a release.
-    installer.install(jar, checksum, int(config['port']), database=Path(config['database']))
+    installer.install(jar, checksum, int(config['port']), database=Path(config['database']),
+                      restore_database=config.get('_restore_database'),
+                      before_replace=lambda backup, db: history.remember(config['root'], backup, installer, database=db, current=True))
 
 
 def once(config, github, retry=False):
@@ -138,7 +141,10 @@ def once(config, github, retry=False):
         previous = read_json(root/'attempt.json', {})
         if previous.get('status') == 'installing':
             raise RuntimeError('Interrupted installation; inspect the service and backups before retrying')
+        save_json(root/'heartbeat.json', {'checked_at': int(time.time())})
         pending = read_json(root/'request.json', {})
+        if pending.get('restore'):
+            return restore(config, pending, previous)
         requested_tag = pending.get('tag', '')
         match = TAG.fullmatch(requested_tag)
         if match and match[1] == config['target']:
@@ -160,6 +166,11 @@ def once(config, github, retry=False):
         if manifest is None:
             return {'status': 'waiting-for-ci', 'tag': tag}
         sequence = [manifest['run_id'], manifest['run_attempt']]
+        hold = read_json(root/'hold.json', {})
+        if not requested_tag and sequence <= hold.get('sequence', []):
+            previous['checked_at'] = int(time.time())
+            save_json(root/'status.json', previous)
+            return previous
         if sequence < previous.get('sequence', [0, 0]):
             raise RuntimeError('Older release refused; publish a new run to roll back intentionally')
         cached = root/'candidate.jar'
@@ -180,7 +191,7 @@ def once(config, github, retry=False):
         first_preview = preview and not (lab_instance.instance(config)/'sauna.jar').exists()
         if config['target'] == 'production' or preview:
             request = read_json(root/'request.json', {})
-            if request.get('tag') != tag and not first_preview:
+            if request.get('tag') != tag and not first_preview and config.get('automatic') is not True:
                 save_json(root/'status.json', result)
                 return result  # An administrator must press Update inside the web panel.
             result['status'] = 'installing'
@@ -191,6 +202,9 @@ def once(config, github, retry=False):
                     lab_instance.install(config, cached, installer)
                 else:
                     production(config, cached, manifest['sha256'])
+                    history.remember(root, cached, installer, metadata={'version':tag, 'commit':manifest['commit'],
+                                     'description':manifest.get('description') or release.get('name') or tag}, current=True)
+                    history.prune(root)
             except Exception as error:
                 result.update(status='failed', error=public_error(error), checked_at=int(time.time()))
                 save_json(root/'attempt.json', result)
@@ -202,6 +216,46 @@ def once(config, github, retry=False):
         save_json(root/'attempt.json', result)
         save_json(root/'status.json', result)
         return result
+
+
+def restore(config, request, previous):
+    root = Path(config['root'])
+    if config['target'] != 'production':
+        raise RuntimeError('Saved-version restore is supported for production only')
+    version = request.get('tag', '')
+    sequence = max(previous.get('sequence',[0,0]), read_json(root/'status.json',{}).get('sequence',[0,0]))
+    result = dict(status='installing', tag=version, target=config['target'],
+                  sequence=sequence, checked_at=int(time.time()), restore=True)
+    try:
+        entry, jar, database = history.restore_files(root, version, installer)
+        result['commit'] = entry.get('commit','')
+    except Exception as error:
+        result.update(status='failed', error=public_error(error))
+        save_json(root/'attempt.json', result)
+        save_json(root/'status.json', result)
+        save_json(root/'hold.json', {'sequence': sequence})
+        (root/'request.json').unlink(missing_ok=True)
+        raise
+    save_json(root/'attempt.json', result)
+    save_json(root/'status.json', result)
+    try:
+        production(dict(config, _restore_database=str(database)), jar, entry['sha256'])
+        data = history.read(root)
+        data['current'] = version
+        history.save(root, data)
+        # Do not immediately re-install the version the administrator just rolled back.
+        save_json(root/'hold.json', {'sequence':result['sequence']})
+        result['status'] = 'success'
+    except Exception as error:
+        result.update(status='failed', error=public_error(error))
+        save_json(root/'hold.json', {'sequence': sequence})
+        raise
+    finally:
+        result['checked_at'] = int(time.time())
+        save_json(root/'attempt.json', result)
+        save_json(root/'status.json', result)
+        (root/'request.json').unlink(missing_ok=True)
+    return result
 
 
 def public_error(error):

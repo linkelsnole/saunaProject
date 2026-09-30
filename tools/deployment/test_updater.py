@@ -121,6 +121,13 @@ class UpdateFlowTests(unittest.TestCase):
         updater.once(self.config, self.github)
         self.install.assert_called_once()
 
+    def test_automatic_install_requires_explicit_configuration(self):
+        self.config['automatic']=True
+        self.assertEqual(updater.once(self.config,self.github)['status'],'success')
+        self.install.assert_called_once()
+        updater.once(self.config,self.github)
+        self.install.assert_called_once()
+
     def test_lab_never_calls_production_even_with_request(self):
         self.config['target'] = 'lab'
         updater.save_json(self.root/'request.json', {'tag':self.release['tag_name']})

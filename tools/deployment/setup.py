@@ -23,7 +23,7 @@ def main():
     files = {str(path.relative_to(ROOT)): path.read_text() for path in [
         ROOT/'tools/deploy_small_remote.py',
         ROOT/'tools/deployment/github_release.py', ROOT/'tools/deployment/updater.py',
-        ROOT/'tools/deployment/lab_instance.py',
+        ROOT/'tools/deployment/lab_instance.py', ROOT/'tools/deployment/release_history.py',
     ]}
     config = dict(target='lab', root=DESTINATION, preview=True, preview_port=8087 if args.public_lab else 18082,
                   preview_address='0.0.0.0' if args.public_lab else '127.0.0.1',

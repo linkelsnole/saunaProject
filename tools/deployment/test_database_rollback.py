@@ -36,6 +36,19 @@ class DatabaseRollbackTests(unittest.TestCase):
                 self.assertEqual(connection.execute('select name from users').fetchone()[0], 'original')
             self.assertEqual(len(list(root.glob('*.sqlite.failed'))), 1)
 
+    def test_explicit_restore_failure_returns_current_jar_and_current_database(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder); current=root/'current.jar'; old=root/'old.jar'; db=root/'users.db'; snapshot=root/'snapshot.db'
+            for path,text in ((current,'current'),(old,'old')):
+                with zipfile.ZipFile(path,'w') as z:z.writestr('BOOT-INF/classes/static/index.html',text)
+            for path,text in ((db,'current'),(snapshot,'old')):
+                with sqlite3.connect(path) as c:c.execute('create table users(name text)');c.execute('insert into users values (?)',(text,))
+            checksum=installer.digest(current)
+            with patch.object(installer,'inspect',return_value=(current,'active')),patch.object(installer,'service'),patch.object(installer,'prop',side_effect=lambda p:'inactive' if p=='ActiveState' else '0'),patch.object(installer,'ready',side_effect=[False,True]):
+                with self.assertRaises(RuntimeError):installer.install(old,installer.digest(old),8082,database=db,restore_database=snapshot)
+            self.assertEqual(installer.digest(current),checksum)
+            with sqlite3.connect(db) as c:self.assertEqual(c.execute('select name from users').fetchone()[0],'current')
+
     def test_absent_database_never_stops_service(self):
         with tempfile.TemporaryDirectory() as folder:
             jar = Path(folder)/'new.jar'

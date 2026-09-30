@@ -3,6 +3,7 @@
 import hashlib
 import json
 import os
+import subprocess
 from pathlib import Path
 from github_release import REPOSITORY, validate_manifest
 
@@ -13,6 +14,7 @@ def main():
     attempt = int(os.environ['GITHUB_RUN_ATTEMPT'])
     jar = Path('backend/target/sauna.jar')
     data = dict(schema=1, repository=REPOSITORY, target=target, jar='sauna.jar',
+                description=subprocess.check_output(['git','log','-1','--format=%s'], text=True).strip()[:2000],
                 commit=os.environ['GITHUB_SHA'], run_id=run_id, run_attempt=attempt,
                 size=jar.stat().st_size, sha256=hashlib.file_digest(jar.open('rb'), 'sha256').hexdigest())
     tag = 'small-%s-%s-%s' % (target, run_id, attempt)

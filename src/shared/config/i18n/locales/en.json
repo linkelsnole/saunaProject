@@ -573,5 +573,20 @@
     "failedBody": "The new version did not start. The updater attempted to restore the previous version. Ask an administrator to check the service.",
     "close": "Close",
     "requestFailed": "Could not submit the request. Check your connection and try again."
+  },
+  "panelHistory": {
+    "title": "Panel versions",
+    "description": "The three most recent saved web panel versions.",
+    "unavailable": "Version history is not configured on the server yet.",
+    "loadError": "Could not load version history. Refresh to try again.",
+    "restoreError": "Restore was not confirmed. Refresh before trying again.",
+    "confirm": "Restore this version?",
+    "databaseWarning": "The application and its database will be restored. Panel accounts and settings will revert to the saved state. Snapshot date:",
+    "cancel": "Cancel",
+    "restore": "Restore",
+    "refresh": "Refresh",
+    "empty": "Versions will appear after the server archive is configured.",
+    "current": "Current",
+    "choose": "Choose"
   }
 }

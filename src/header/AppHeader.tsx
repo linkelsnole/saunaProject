@@ -14,6 +14,7 @@ import { useSettingsSheet } from "@/contexts/SettingsSheetContext"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/shared/ui/dropdown-menu"
 import { useAuth } from "@/contexts/AuthContext"
 import { triggerReconnect } from "@/api/connectionApi"
+import { PanelVersionHistory } from "@/components/updates/PanelVersionHistory"
 import { UserManagementDialog } from "@/components/settings/UserManagementDialog"
 import { LanguageSwitcher } from "@/features/language-switcher/ui/LanguageSwitcher"
 import { useTranslation } from "react-i18next"
@@ -28,6 +29,7 @@ const AppHeader: React.FC<AppHeaderProps> = () => {
 	const navigate = useNavigate()
 	const isAdmin = role === 'ROLE_ADMIN'
 	const [usersOpen, setUsersOpen] = useState(false)
+	const [versionsOpen,setVersionsOpen]=useState(false)
 
 	const handleLogout = () => {
 		logout()
@@ -84,6 +86,7 @@ const AppHeader: React.FC<AppHeaderProps> = () => {
 								<User className="h-4 w-4 mr-2" />
 								<span>{t('header.profile')}</span>
 							</DropdownMenuItem>
+							{isAdmin && <DropdownMenuItem className="cursor-pointer text-base" onSelect={()=>setVersionsOpen(true)}><RefreshCcw className="h-4 w-4 mr-2"/><span>{t("panelHistory.title")}</span></DropdownMenuItem>}
 							{isAdmin && <DropdownMenuItem className="cursor-pointer text-base" onSelect={() => setUsersOpen(true)}><User className="h-4 w-4 mr-2" /><span>{t('users.title')}</span></DropdownMenuItem>}
 							{isAdmin && (
 								<DropdownMenuItem 
@@ -114,6 +117,7 @@ const AppHeader: React.FC<AppHeaderProps> = () => {
 				</div>
 			</div>
 			{isAdmin && <UserManagementDialog open={usersOpen} onOpenChange={setUsersOpen} />}
+			{isAdmin && <PanelVersionHistory open={versionsOpen} onOpenChange={setVersionsOpen}/>}
 		</header>
 	)
 }

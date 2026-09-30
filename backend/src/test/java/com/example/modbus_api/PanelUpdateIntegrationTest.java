@@ -48,6 +48,8 @@ class PanelUpdateIntegrationTest {
     }
     @BeforeEach void reset() throws Exception {
         Files.deleteIfExists(root.resolve("request.json"));
+        Files.deleteIfExists(root.resolve("history.json"));
+        Files.deleteIfExists(root.resolve("heartbeat.json"));
         Files.write(root.resolve("ui-enabled"), new byte[0]);
         state(Instant.now().getEpochSecond());
     }
@@ -91,6 +93,17 @@ class PanelUpdateIntegrationTest {
                 .contentType("application/json").content(body)).andExpect(status().isBadRequest());
         assertFalse(Files.exists(root.resolve("request.json")));
     }
+    @Test void historyAndRestoreAreAdminOnlyAndIgnoreUnknownVersions() throws Exception {
+        Files.write(root.resolve("history.json"),"{\"current\":\"small-production-17-1\",\"versions\":[{\"version\":\"small-production-16-1\",\"description\":\"previous\",\"restorable\":true,\"dbSha256\":\"private-checksum\"}]}".getBytes("UTF-8"));
+        mvc.perform(get("/api/v1/panel-updates/history").header("Authorization",auth(Role.ROLE_READONLY))).andExpect(status().isForbidden());
+        String admin=auth(Role.ROLE_ADMIN);
+        mvc.perform(get("/api/v1/panel-updates/history").header("Authorization",admin)).andExpect(status().isOk()).andExpect(jsonPath("$.versions[0].description").value("previous")).andExpect(jsonPath("$.versions[0].dbSha256").doesNotExist());
+        mvc.perform(post("/api/v1/panel-updates/restore").header("Authorization",auth(Role.ROLE_USER)).contentType("application/json").content("{\"version\":\"small-production-16-1\"}")).andExpect(status().isForbidden());
+        mvc.perform(post("/api/v1/panel-updates/restore").header("Authorization",admin).contentType("application/json").content("{\"version\":\"../../other\"}")).andExpect(status().isConflict());
+        mvc.perform(post("/api/v1/panel-updates/restore").header("Authorization",admin).contentType("application/json").content("{\"version\":\"small-production-16-1\"}")).andExpect(status().isOk()).andExpect(jsonPath("$.status").value("queued"));
+        assertTrue(json.readTree(Files.readAllBytes(root.resolve("request.json"))).path("restore").asBoolean());
+    }
+
     @Test void absentUpdaterDoesNotOfferUpdates() throws Exception {
         Files.delete(root.resolve("ui-enabled"));
         mvc.perform(get("/api/v1/panel-updates").header("Authorization", auth(Role.ROLE_ADMIN)))

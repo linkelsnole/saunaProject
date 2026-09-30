@@ -17,6 +17,14 @@ public class PanelUpdateController {
     @GetMapping
     public ObjectNode status() throws IOException { return updates.status(); }
 
+    @GetMapping("/history")
+    public ObjectNode history() throws IOException { return updates.history(); }
+
+    @PostMapping("/restore")
+    public ObjectNode restore(@RequestBody Map<String, String> body) throws IOException {
+        return updates.restore(body.get("version"));
+    }
+
     @PostMapping
     public ObjectNode request(@RequestBody Map<String, String> body) throws IOException {
         return updates.request(body.get("version"));

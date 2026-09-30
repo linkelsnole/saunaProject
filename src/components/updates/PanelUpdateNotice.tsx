@@ -22,6 +22,12 @@ function AdminUpdateNotice() {
   const [failed, setFailed] = useState(false);
   const sending = useRef(false);
   const started = useRef(0);
+  const installed = useRef<string | null>(null);
+  useEffect(()=>{
+    const receive=(event:Event)=>{started.current=Date.now();setFailed(false);setRequested((event as CustomEvent<string>).detail);};
+    window.addEventListener('panel-update-requested',receive);
+    return ()=>window.removeEventListener('panel-update-requested',receive);
+  },[]);
   const busy = Boolean(requested) && !failed;
   const tr = (key: string) => t(`panelUpdate.${key}`);
 
@@ -33,7 +39,11 @@ function AdminUpdateNotice() {
         const next = await panelUpdateStatus();
         if (disposed) return;
         setState(next);
-        if (!requested && next.version && next.version !== dismissed && (next.status === 'queued' || next.status === 'installing')) {
+        if(next.installedVersion){
+          if(installed.current!==null && installed.current!==next.installedVersion){window.location.reload();return;}
+          installed.current=next.installedVersion;
+        }
+        if (!requested && next.version && (next.status === 'queued' || next.status === 'installing')) {
           started.current = Date.now();
           setRequested(next.version);
         }
@@ -45,7 +55,7 @@ function AdminUpdateNotice() {
       } finally {
         if (!disposed) {
           if (requested && Date.now() - started.current > 180_000) setSlow(true);
-          timer = setTimeout(() => { void poll(); }, requested ? 3000 : 60_000);
+          timer = setTimeout(() => { void poll(); }, requested ? 3000 : 5000);
         }
       }
     }

@@ -110,7 +110,7 @@ def ready(port, expected_index, timeout=60):
     return False
 
 
-def install(stage, expected, port, database=None):
+def install(stage, expected, port, database=None, restore_database=None, before_replace=None):
     stage = Path(stage)
     if stage.is_symlink() or not stage.is_file():
         raise RuntimeError('Файл загрузки отсутствует или является ссылкой')
@@ -119,10 +119,17 @@ def install(stage, expected, port, database=None):
         database = Path(database)
         if database.is_symlink() or not database.is_file():
             raise RuntimeError('Существующая база SQLite не найдена или является ссылкой')
+    if restore_database is not None:
+        restore_database = Path(restore_database)
+        if database is None or restore_database.is_symlink() or not restore_database.is_file():
+            raise RuntimeError('Отсутствует база для восстановления')
+        with sqlite3.connect('file:' + str(restore_database) + '?mode=ro', uri=True) as source:
+            if source.execute('PRAGMA integrity_check').fetchone()[0] != 'ok':
+                raise RuntimeError('Повреждена база для восстановления')
     jar, old_state = inspect()
     with open(str(jar) + '.deploy.lock', 'a') as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        backup = jar.with_name(jar.name + '.backup-' + time.strftime('%Y%m%d-%H%M%S'))
+        backup = jar.with_name(jar.name + '.backup-' + time.strftime('%Y%m%d-%H%M%S') + '-' + str(time.time_ns()))
         if backup.exists():
             raise RuntimeError('Имя резервной копии уже занято')
         shutil.copy2(jar, backup)
@@ -134,6 +141,7 @@ def install(stage, expected, port, database=None):
         os.close(fd)
         new = Path(new_name)
         replaced = False
+        database_replaced = False
         stop_attempted = False
         db_backup = None
         try:
@@ -155,6 +163,16 @@ def install(stage, expected, port, database=None):
                         if destination.execute('PRAGMA integrity_check').fetchone()[0] != 'ok':
                             raise RuntimeError('Резервная копия базы SQLite не прошла проверку')
                 os.chmod(db_backup, database.stat().st_mode & 0o777)
+            if before_replace is not None:
+                before_replace(backup, db_backup)
+            if restore_database is not None:
+                # Current data is already backed up. Preserve its WAL files for failure recovery.
+                database_replaced = True
+                for suffix in ('', '-wal', '-shm'):
+                    current = Path(str(database) + suffix)
+                    if current.exists():
+                        os.replace(current, Path(str(db_backup) + '.before-restore' + suffix))
+                shutil.copy2(restore_database, database)
             os.replace(new, jar)
             replaced = True
             print('JAR установлен, запуск ' + SERVICE, flush=True)
@@ -164,7 +182,7 @@ def install(stage, expected, port, database=None):
             print(json.dumps({'result': 'deployed', 'service': SERVICE, 'jar': str(jar),
                               'sha256': digest(jar), 'backup': str(backup)}, ensure_ascii=False), flush=True)
         except BaseException:
-            if replaced:
+            if replaced or database_replaced:
                 print('Возврат предыдущего JAR', flush=True)
                 service('stop')
                 if prop('ActiveState') != 'inactive' or int(prop('MainPID')) != 0:
