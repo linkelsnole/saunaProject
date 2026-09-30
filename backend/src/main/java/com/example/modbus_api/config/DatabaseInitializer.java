@@ -49,11 +49,6 @@ public class DatabaseInitializer implements CommandLineRunner {
                 userRepository.save(readerUser);
                 logger.info("Read-only user created");
             }
-        } else {
-            readerUser.setPassword(passwordEncoder.encode("Guest6"));
-            readerUser.setRole(Role.ROLE_READONLY);
-            userRepository.save(readerUser);
-            logger.info("Read-only user credentials updated");
         }
 
         }
@@ -68,11 +63,6 @@ public class DatabaseInitializer implements CommandLineRunner {
                     .build();
             userRepository.save(mgmUser);
             logger.info("MGM user created");
-        } else {
-            mgmUser.setPassword(passwordEncoder.encode("Mgm246"));
-            mgmUser.setRole(Role.ROLE_MGM);
-            userRepository.save(mgmUser);
-            logger.info("MGM user credentials updated");
         }
 
 
@@ -88,11 +78,6 @@ public class DatabaseInitializer implements CommandLineRunner {
                     .build();
             userRepository.save(dimaUser);
             logger.info("DIMA user created");
-        } else {
-            dimaUser.setPassword(passwordEncoder.encode("Dima357"));
-            dimaUser.setRole(Role.ROLE_USER);
-            userRepository.save(dimaUser);
-            logger.info("DIMA user credentials updated");
         }
 
         }
@@ -107,11 +92,6 @@ public class DatabaseInitializer implements CommandLineRunner {
                     .build();
             userRepository.save(sergeyUser);
             logger.info("SERGEY user created");
-        } else {
-            sergeyUser.setPassword(passwordEncoder.encode("Sergey468"));
-            sergeyUser.setRole(Role.ROLE_USER);
-            userRepository.save(sergeyUser);
-            logger.info("SERGEY user credentials updated");
         }
         }
 
