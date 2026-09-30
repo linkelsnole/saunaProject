@@ -101,7 +101,7 @@ public class SettingsService {
 		}
 		Integer aggregateState = modbusClient.readRegister(SAUNA_PLC, ModbusRegisterMap.AGGREGATE_STATE);
 
-		forceAutoTemperature(userSetBase);
+		forceAutoTemperature(userSetBase, request.getZone1Mode() != null, request.getZone2Mode() != null);
 
 		if (request.getZone1Mode() != null) {
 			modbusClient.writeRegister(SAUNA_PLC,
@@ -139,7 +139,9 @@ public class SettingsService {
 		validateTemperature("ПВ зоны 2", request.getInflowTargetZone2());
 		validateOrp("ОРП зоны 1", request.getOrpZone1());
 		validateOrp("ОРП зоны 2", request.getOrpZone2());
-		forceAutoTemperature(requireTemperatureUserSetBase());
+		forceAutoTemperature(requireTemperatureUserSetBase(),
+            request.getOutflowTarget() != null || request.getInflowTargetZone1() != null || request.getOrpZone1() != null,
+            request.getOutflowTarget() != null || request.getInflowTargetZone2() != null || request.getOrpZone2() != null);
 
 		if (request.getOutflowTarget() != null) {
 			int rawValue = scaledTemperature(request.getOutflowTarget());
@@ -239,9 +241,9 @@ public class SettingsService {
         return base;
     }
 
-    private void forceAutoTemperature(int base) throws IOException {
-        modbusClient.writeRegister(SAUNA_PLC, base + ModbusRegisterMap.SCHEDULE_TEMPERATURE_MODE_ZONE_1_OFFSET, 2);
-        modbusClient.writeRegister(SAUNA_PLC, base + ModbusRegisterMap.SCHEDULE_TEMPERATURE_MODE_ZONE_2_OFFSET, 2);
+    private void forceAutoTemperature(int base, boolean zone1, boolean zone2) throws IOException {
+        if (zone1) modbusClient.writeRegister(SAUNA_PLC, base + ModbusRegisterMap.SCHEDULE_TEMPERATURE_MODE_ZONE_1_OFFSET, 2);
+        if (zone2) modbusClient.writeRegister(SAUNA_PLC, base + ModbusRegisterMap.SCHEDULE_TEMPERATURE_MODE_ZONE_2_OFFSET, 2);
     }
 
 	private Integer findUserSetScheduleBase(Map<Integer, Integer> modes) {
@@ -296,7 +298,9 @@ public class SettingsService {
 		Integer tempControlAlgorithm,
 		Double tempTrackingInterval
 	) throws IOException {
-		forceAutoTemperature(requireTemperatureUserSetBase());
+		if (targetZone1 != null || targetZone2 != null) {
+            forceAutoTemperature(requireTemperatureUserSetBase(), targetZone1 != null, targetZone2 != null);
+        }
 		// Priority 0: REG_T_VALVE_STARTUP_POS 0xE1, REG_T_CTRL_ALGORITHM 0xDD, REG_T_TRACKING_INTERVAL 0x7E
 		if (valveStartupPositionProc != null) {
 			modbusClient.writeRegister(SAUNA_PLC, REG_T_VALVE_STARTUP_POS, valveStartupPositionProc.intValue());

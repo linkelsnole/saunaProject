@@ -165,13 +165,28 @@ class UserManagementIntegrationTest {
         JsonNode data=json.readTree(body);assertEquals("0.0",data.at("/valves/0/value").asText());assertEquals("51.9",data.at("/valves/1/value").asText());assertEquals("12.5",data.at("/valves/2/value").asText());assertEquals("100.0",data.at("/valves/3/value").asText());assertEquals("51.8",data.at("/debugValveSensors/1/value").asText());assertEquals("99.9",data.at("/debugValveSensors/4/value").asText());
         verify(modbus,never()).writeRegister(anyString(),anyInt(),anyInt());
     }
-    @Test void screenTemperatureEndpointForcesAutoInBothUserSetZones() throws Exception {
+    @Test void screenTemperatureEndpointForcesAutoInAffectedUserSetZone() throws Exception {
         when(modbus.readRegisters(eq(SAUNA_PLC),anyList())).thenReturn(Collections.singletonMap(0x20C0,5));
         when(modbus.readRegister(SAUNA_PLC,0x20C1)).thenReturn(2);
         when(modbus.readRegister(SAUNA_PLC,ModbusRegisterMap.AGGREGATE_STATE)).thenReturn(64);
         mvc.perform(post("/api/v1/devices/temperature-control").header("Authorization",auth()).contentType("application/json").content("{\"zone1Mode\":1}")).andExpect(status().isOk());
-        verify(modbus).writeRegister(SAUNA_PLC,0x20CC,2);verify(modbus).writeRegister(SAUNA_PLC,0x20CF,2);
+        org.mockito.InOrder order=inOrder(modbus);
+        order.verify(modbus).writeRegister(SAUNA_PLC,0x20CC,2);
+        order.verify(modbus).writeRegister(SAUNA_PLC,0x20CD,1);
+        verify(modbus,never()).writeRegister(eq(SAUNA_PLC),eq(0x20CF),anyInt());
         verify(modbus).writeRegister(SAUNA_PLC,0x20CD,1);
+    }
+
+    @Test void temperatureTargetEndpointEnablesAutoBeforeZoneTwoTarget() throws Exception {
+        when(modbus.readRegisters(eq(SAUNA_PLC),anyList())).thenReturn(Collections.singletonMap(0x20C0,5));
+        mvc.perform(post("/api/v1/devices/temperature-setpoints").header("Authorization",auth())
+            .contentType("application/json").content("{\"inflowTargetZone2\":22.5}"))
+            .andExpect(status().isOk());
+        org.mockito.InOrder order=inOrder(modbus);
+        order.verify(modbus).writeRegister(SAUNA_PLC,0x20CF,2);
+        order.verify(modbus).writeRegister(SAUNA_PLC,ModbusRegisterMap.HEATER_ZONE_2+25,225);
+        order.verify(modbus).writeRegister(SAUNA_PLC,ModbusRegisterMap.AGGREGATE_COMMAND,6);
+        verify(modbus,never()).writeRegister(eq(SAUNA_PLC),eq(0x20CC),anyInt());
     }
 
     @Test void physicalPatchKeepsManualModesAndWorkingAndConfirmsReadback() throws Exception {

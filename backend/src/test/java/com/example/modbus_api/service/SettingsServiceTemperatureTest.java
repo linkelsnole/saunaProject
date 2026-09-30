@@ -52,7 +52,7 @@ class SettingsServiceTemperatureTest {
             new UpdateTemperatureControlRequest(0, null));
 
         verify(client).writeRegister(SAUNA_PLC, userSetBase + 12, 2);
-        verify(client).writeRegister(SAUNA_PLC, userSetBase + 15, 2);
+        verify(client, never()).writeRegister(eq(SAUNA_PLC), eq(userSetBase + 15), anyInt());
         verify(client).writeRegister(SAUNA_PLC,
             ModbusRegisterMap.HEATER_ZONE_1 + ModbusRegisterMap.TEMPERATURE_CONTROL_OFFSET, 0);
         verify(client).writeRegister(SAUNA_PLC,
@@ -114,15 +114,51 @@ class SettingsServiceTemperatureTest {
         assertThrows(IOException.class,()->new SettingsService(client).updateTemperatureSetpoints(request));
         verify(client,never()).writeRegister(anyString(),anyInt(),anyInt());
     }
-    @Test void legacyTemperatureSettingsAlsoForceBothZonesBeforeCommand() throws IOException {
+    @Test void legacyTemperatureSettingsForceAffectedZoneBeforeCommand() throws IOException {
         ModbusClientAdapter client=mock(ModbusClientAdapter.class);
         int base=ModbusRegisterMap.scheduleBase(9);
         when(client.readRegisters(eq(SAUNA_PLC),anyList())).thenReturn(Collections.singletonMap(base,5));
         new SettingsService(client).updateTempSettings(21.0,null,null,null,null,null,null,null,null,null,null,null,null);
         org.mockito.InOrder order=inOrder(client);
         order.verify(client).writeRegister(SAUNA_PLC,base+12,2);
-        order.verify(client).writeRegister(SAUNA_PLC,base+15,2);
+        verify(client, never()).writeRegister(eq(SAUNA_PLC), eq(base+15), anyInt());
         order.verify(client).writeRegister(SAUNA_PLC,ModbusConstants.REG_T_TARGET_ZONE1,210);
         order.verify(client).writeRegister(SAUNA_PLC,ModbusRegisterMap.AGGREGATE_COMMAND,6);
+    }
+
+    @Test void everyModeEnablesAutoFirstEvenWhenUserSetWasManual() throws IOException {
+        for (int mode=0; mode<=2; mode++) {
+            ModbusClientAdapter client=mock(ModbusClientAdapter.class);
+            int base=ModbusRegisterMap.scheduleBase(7);
+            when(client.readRegisters(eq(SAUNA_PLC),anyList())).thenReturn(Collections.singletonMap(base,5));
+            when(client.readRegister(SAUNA_PLC,base+1)).thenReturn(1);
+            new SettingsService(client).setTemperatureControlModes(new UpdateTemperatureControlRequest(mode==2?2:null,mode));
+            org.mockito.InOrder order=inOrder(client);
+            order.verify(client).writeRegister(SAUNA_PLC,base+15,2);
+            order.verify(client).writeRegister(SAUNA_PLC,ModbusRegisterMap.HEATER_ZONE_2+3,mode);
+            order.verify(client).writeRegister(SAUNA_PLC,base+16,mode);
+        }
+    }
+    @Test void zoneTwoTargetEnablesAutoBeforeWritingAndLeavesZoneOneAlone() throws IOException {
+        ModbusClientAdapter client=mock(ModbusClientAdapter.class);
+        int base=ModbusRegisterMap.scheduleBase(7);
+        when(client.readRegisters(eq(SAUNA_PLC),anyList())).thenReturn(Collections.singletonMap(base,5));
+        UpdateTemperatureSetpointsRequest request=new UpdateTemperatureSetpointsRequest();request.setInflowTargetZone2(22.5);
+        new SettingsService(client).updateTemperatureSetpoints(request);
+        org.mockito.InOrder order=inOrder(client);
+        order.verify(client).writeRegister(SAUNA_PLC,base+15,2);
+        order.verify(client).writeRegister(SAUNA_PLC,ModbusRegisterMap.HEATER_ZONE_2+25,225);
+        order.verify(client).writeRegister(SAUNA_PLC,ModbusRegisterMap.AGGREGATE_COMMAND,6);
+        verify(client,never()).writeRegister(eq(SAUNA_PLC),eq(base+12),anyInt());
+    }
+    @Test void failedAutoWritePreventsTargetAndRecalculation() throws IOException {
+        ModbusClientAdapter client=mock(ModbusClientAdapter.class);
+        int base=ModbusRegisterMap.scheduleBase(7);
+        when(client.readRegisters(eq(SAUNA_PLC),anyList())).thenReturn(Collections.singletonMap(base,5));
+        doThrow(new IOException("write failed")).when(client).writeRegister(SAUNA_PLC,base+15,2);
+        UpdateTemperatureSetpointsRequest request=new UpdateTemperatureSetpointsRequest();request.setInflowTargetZone2(22.5);
+        assertThrows(IOException.class,()->new SettingsService(client).updateTemperatureSetpoints(request));
+        verify(client,never()).writeRegister(eq(SAUNA_PLC),eq(ModbusRegisterMap.HEATER_ZONE_2+25),anyInt());
+        verify(client,never()).writeRegister(eq(SAUNA_PLC),eq(ModbusRegisterMap.AGGREGATE_COMMAND),anyInt());
     }
 }
