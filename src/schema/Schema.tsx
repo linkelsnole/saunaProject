@@ -53,6 +53,7 @@ const FanBottomLabel = ({
 			position: 'absolute',
 			left: x,
 			top: y,
+			transform: green ? 'translateX(-50%)' : undefined,
 			fontSize: 13,
 			lineHeight: 1.2,
 			fontFamily: 'ui-monospace, SFMono-Regular, Menlo, sans-serif',
@@ -688,7 +689,7 @@ const Schema = () => {
 				/>
 				{/* vm1, vmanual — x/y для выравнивания (x: левее/правее, y: выше/ниже) */}
 				<FanBottomLabel x={360} y={315} text={formatFanBottomLabel('vm1')} />
-				<FanBottomLabel x={380} y={290} text={formatFanBottomLabel('vmanual')} green />
+				<FanBottomLabel x={395} y={290} text={formatFanBottomLabel('vmanual')} green />
 			</Html>
 
 			{/*BF21 и BF22 - объединенный компонент*/}
@@ -713,7 +714,7 @@ const Schema = () => {
 				/>
 				{/* vm2, formula — x/y для выравнивания */}
 				<FanBottomLabel x={125} y={568} text={formatFanBottomLabel('vm2')} />
-				<FanBottomLabel x={145} y={543} text={formatFanBottomLabel('formula')} green />
+				<FanBottomLabel x={160} y={543} text={formatFanBottomLabel('formula')} green />
 			</Html>
 
 

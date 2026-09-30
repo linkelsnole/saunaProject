@@ -316,11 +316,11 @@ export const ScheduleSettingsWidget = () => {
                     ? 'bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-md shadow-emerald-500/25'
                     : 'bg-slate-100 text-slate-400',
                 )}>
-                  {group.id}
+                  {Math.abs(group.id)}
                 </div>
                 <div className="min-w-0">
                   <h3 className="truncate text-base font-semibold text-slate-800">
-                    {t('schedule.title', { number: group.id })}
+                    {group.id < 0 ? `${t('physicalSchedule.slot')} ${-group.id}` : `${t('physicalSchedule.group')} ${group.id}`}
                   </h3>
                   <div className="mt-0.5 flex items-center gap-1.5 text-xs text-slate-500">
                     <CalendarDays className="h-3 w-3 shrink-0" />
@@ -344,7 +344,7 @@ export const ScheduleSettingsWidget = () => {
                 )}
                 <button
                   type="button"
-                  aria-label={t('schedule.title', { number: group.id })}
+                  aria-label={group.id < 0 ? `${t('physicalSchedule.slot')} ${-group.id}` : `${t('physicalSchedule.group')} ${group.id}`}
                   onClick={() => setOpenGroup(open ? null : group.id)}
                   className={cn(
                     'flex h-8 w-8 items-center justify-center rounded-lg transition-all duration-300',

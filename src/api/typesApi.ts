@@ -163,7 +163,7 @@ export interface ScheduleData {
   status: ScheduleStatus;
   statusRawCode: number;
   weekDayMask: number;
-  group: number;
+  group: number | null;
   dateRange: { startDate: number; endDate: number };
   timeRange: { startTime: number; endTime: number };
   duration: number;

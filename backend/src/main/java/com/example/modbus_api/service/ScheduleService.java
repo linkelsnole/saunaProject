@@ -8,11 +8,9 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -23,24 +21,12 @@ import static com.example.modbus_api.service.ModbusConstants.SAUNA_PLC;
 
 @Service
 public class ScheduleService {
-    private static final int SCHEDULE_MODE_DATES = 4;
     private static final double TEMPERATURE_MIN = -50.0;
     private static final double TEMPERATURE_MAX = 100.0;
 
-    private static final Map<Integer, List<Integer>> SCHEDULE_GROUPS;
     private static final Map<String, Integer> WEEK_DAY_BITS;
 
     static {
-        Map<Integer, List<Integer>> groups = new LinkedHashMap<>();
-        groups.put(1, Arrays.asList(4, 5, 6));
-        groups.put(2, Arrays.asList(7, 8));
-        groups.put(3, Arrays.asList(9, 10));
-        groups.put(4, Arrays.asList(11, 12, 13));
-        groups.put(5, Arrays.asList(14, 15));
-        groups.put(6, Arrays.asList(16, 17, 18));
-        groups.put(7, Arrays.asList(19, 20));
-        SCHEDULE_GROUPS = Collections.unmodifiableMap(groups);
-
         Map<String, Integer> dayBits = new HashMap<>();
         dayBits.put("mon", 0);
         dayBits.put("пн", 0);
@@ -100,7 +86,7 @@ public class ScheduleService {
             ? ScheduleData.ScheduleStatus.ACTIVE
             : ScheduleData.ScheduleStatus.INACTIVE);
         schedule.setWeekDayMask(valueOrDefault(values.get(base + ModbusRegisterMap.SCHEDULE_WEEK_DAYS_OFFSET), 0));
-        schedule.setGroup(valueOrDefault(values.get(base + ModbusRegisterMap.SCHEDULE_GROUP_OFFSET), 0));
+        schedule.setGroup(validValue(values.get(base + ModbusRegisterMap.SCHEDULE_GROUP_OFFSET)));
         schedule.setDateRange(new ScheduleData.DateRange(
             valueOrDefault(values.get(base + ModbusRegisterMap.SCHEDULE_START_DATE_OFFSET), 0),
             valueOrDefault(values.get(base + ModbusRegisterMap.SCHEDULE_END_DATE_OFFSET), 0)));
@@ -134,8 +120,13 @@ public class ScheduleService {
     }
 
     public void updateScheduleGroup(int groupId, UpdateScheduleGroupRequest request) throws IOException {
-        List<Integer> scheduleIds = scheduleIdsForGroup(groupId);
-        validateGroupRequest(scheduleIds, request);
+        if (request == null || request.getIntervals() == null) throw new IllegalArgumentException("Нет интервалов");
+        List<Integer> submitted = new ArrayList<>();
+        for (UpdateScheduleIntervalRequest interval : request.getIntervals()) {
+            if (interval == null) throw new IllegalArgumentException("Нет интервала");
+            submitted.add(interval.getScheduleId());
+        }
+        validateGroupRequest(submitted, request);
         for (UpdateScheduleIntervalRequest interval : request.getIntervals()) {
             validateInterval(interval);
         }
@@ -144,10 +135,12 @@ public class ScheduleService {
         validateDate(request.getStartDate(), "Дата начала");
         validateDate(request.getEndDate(), "Дата окончания");
 
+        List<Integer> scheduleIds = scheduleIdsForGroup(groupId);
+        if (!new HashSet<>(scheduleIds).equals(new HashSet<>(submitted)))
+            throw new IllegalArgumentException("Состав группы изменился. Обновите список перед сохранением");
         Map<Integer, Integer> states = readGroupStates(scheduleIds);
         for (int scheduleId : scheduleIds) {
             int base = ModbusRegisterMap.scheduleBaseById(scheduleId);
-            modbusClient.writeRegister(SAUNA_PLC, base + ModbusRegisterMap.SCHEDULE_MODE_OFFSET, SCHEDULE_MODE_DATES);
             modbusClient.writeRegister(SAUNA_PLC, base + ModbusRegisterMap.SCHEDULE_TEMPERATURE_MODE_ZONE_1_OFFSET, 2);
             modbusClient.writeRegister(SAUNA_PLC, base + ModbusRegisterMap.SCHEDULE_TEMPERATURE_MODE_ZONE_2_OFFSET, 2);
             modbusClient.writeRegister(SAUNA_PLC, base + ModbusRegisterMap.SCHEDULE_WEEK_DAYS_OFFSET, weekDayMask);
@@ -221,12 +214,29 @@ public class ScheduleService {
         }
     }
 
-    private static List<Integer> scheduleIdsForGroup(int groupId) {
-        List<Integer> scheduleIds = SCHEDULE_GROUPS.get(groupId);
-        if (scheduleIds == null) {
-            throw new IllegalArgumentException("ID группы расписания должен быть в диапазоне 1–7");
+    // Group zero is independent: the API uses -slotId to address a single such slot.
+    private List<Integer> scheduleIdsForGroup(int groupId) throws IOException {
+        if (groupId == 0 || groupId < -ModbusRegisterMap.SCHEDULE_COUNT || groupId > 65534)
+            throw new IllegalArgumentException("Некорректная группа расписания");
+        List<Integer> addresses = new ArrayList<>();
+        for (int id = 1; id <= ModbusRegisterMap.SCHEDULE_COUNT; id++) {
+            int base = ModbusRegisterMap.scheduleBaseById(id);
+            addresses.add(base);
+            addresses.add(base + ModbusRegisterMap.SCHEDULE_GROUP_OFFSET);
         }
-        return scheduleIds;
+        Map<Integer, Integer> values = modbusClient.readRegisters(SAUNA_PLC, addresses);
+        List<Integer> ids = new ArrayList<>();
+        for (int id = 1; id <= ModbusRegisterMap.SCHEDULE_COUNT; id++) {
+            int base = ModbusRegisterMap.scheduleBaseById(id);
+            Integer mode = validValue(values.get(base));
+            if (mode == null) throw new IOException("Не удалось прочитать типы расписаний");
+            if (mode != 3 && mode != 4) continue;
+            Integer group = validValue(values.get(base + ModbusRegisterMap.SCHEDULE_GROUP_OFFSET));
+            if (group == null) throw new IOException("Не удалось прочитать группы расписаний");
+            if ((groupId > 0 && group == groupId) || (groupId == -id && group == 0)) ids.add(id);
+        }
+        if (ids.isEmpty()) throw new IllegalArgumentException("Состав расписаний изменился. Обновите список");
+        return ids;
     }
 
     private static void validateGroupRequest(List<Integer> scheduleIds, UpdateScheduleGroupRequest request) {

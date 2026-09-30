@@ -4,16 +4,6 @@ export type DayKey = 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun';
 
 export const DAY_KEYS: DayKey[] = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 
-export const GROUP_IDS: number[][] = [
-  [4, 5, 6],
-  [7, 8],
-  [9, 10],
-  [11, 12, 13],
-  [14, 15],
-  [16, 17, 18],
-  [19, 20],
-];
-
 export interface ScheduleTemperatureSelection {
   zone1Mode: TemperatureControlType;
   zone1Target: number;
@@ -112,10 +102,16 @@ export const encodeScheduleTime = (value: string): number => {
   return (hours << 8) | minutes;
 };
 
-export const buildScheduleGroups = (schedules: ScheduleData[]) =>
-  GROUP_IDS.map((ids, index) => ({
-    id: index + 1,
-    schedules: schedules
-      .filter((schedule) => ids.includes(schedule.scheduleId) && schedule.mode !== 'USERSET')
-      .sort((left, right) => left.timeRange.startTime - right.timeRange.startTime),
-  })).filter((group) => group.schedules.length > 0);
+// Positive keys are PLC groups; negative keys identify independent group-zero slots.
+export const buildScheduleGroups = (schedules: ScheduleData[]) => {
+  const groups = new Map<number, ScheduleData[]>();
+  for (const schedule of schedules) {
+    if (!['DATES', 'DAYS_OF_WEEK'].includes(schedule.mode) || schedule.group == null) continue;
+    const key = schedule.group === 0 ? -schedule.scheduleId : schedule.group;
+    groups.set(key, [...(groups.get(key) ?? []), schedule]);
+  }
+  return [...groups.entries()].map(([id, items]) => ({
+    id,
+    schedules: items.sort((a, b) => a.timeRange.startTime - b.timeRange.startTime || a.scheduleId - b.scheduleId),
+  })).sort((a, b) => Math.min(...a.schedules.map(s => s.scheduleId)) - Math.min(...b.schedules.map(s => s.scheduleId)));
+};

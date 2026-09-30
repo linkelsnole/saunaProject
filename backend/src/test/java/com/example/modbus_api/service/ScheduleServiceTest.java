@@ -87,7 +87,7 @@ class ScheduleServiceTest {
     @Test
     void savesGroupWithBothZonesAndPreservesWorkingStateBit() throws IOException {
         ModbusClientAdapter client = mock(ModbusClientAdapter.class);
-        Map<Integer, Integer> states = new HashMap<>();
+        Map<Integer, Integer> states = topology();
         int base4 = ModbusRegisterMap.scheduleBaseById(4);
         int base5 = ModbusRegisterMap.scheduleBaseById(5);
         int base6 = ModbusRegisterMap.scheduleBaseById(6);
@@ -113,7 +113,7 @@ class ScheduleServiceTest {
         verify(client).writeRegister(SAUNA_PLC, base4 + ModbusRegisterMap.SCHEDULE_STATE_OFFSET, 3);
         verify(client, never()).writeRegister(SAUNA_PLC, base5 + ModbusRegisterMap.SCHEDULE_STATE_OFFSET, 3);
         verify(client).writeRegister(SAUNA_PLC, base6 + ModbusRegisterMap.SCHEDULE_STATE_OFFSET, 1);
-        verify(client).writeRegister(SAUNA_PLC, base4 + ModbusRegisterMap.SCHEDULE_MODE_OFFSET, 4);
+        verify(client, never()).writeRegister(eq(SAUNA_PLC), eq(base4 + ModbusRegisterMap.SCHEDULE_MODE_OFFSET), anyInt());
         verify(client).writeRegister(SAUNA_PLC, base4 + ModbusRegisterMap.SCHEDULE_WEEK_DAYS_OFFSET, 0b1000101);
         verify(client).writeRegister(SAUNA_PLC, base4 + ModbusRegisterMap.SCHEDULE_START_TIME_OFFSET, 0x0800);
         verify(client).writeRegister(SAUNA_PLC, base4 + ModbusRegisterMap.SCHEDULE_END_TIME_OFFSET, 0x0C00);
@@ -140,7 +140,7 @@ class ScheduleServiceTest {
         ModbusClientAdapter client = mock(ModbusClientAdapter.class);
         int base7 = ModbusRegisterMap.scheduleBaseById(7);
         int base8 = ModbusRegisterMap.scheduleBaseById(8);
-        Map<Integer, Integer> states = new HashMap<>();
+        Map<Integer, Integer> states = topology();
         states.put(base7 + ModbusRegisterMap.SCHEDULE_STATE_OFFSET, 3);
         states.put(base8 + ModbusRegisterMap.SCHEDULE_STATE_OFFSET, 2);
         when(client.readRegisters(eq(SAUNA_PLC), anyList())).thenReturn(states);
@@ -153,8 +153,9 @@ class ScheduleServiceTest {
     }
 
     @Test
-    void rejectsIntervalFromAnotherGroupBeforeModbusAccess() {
+    void rejectsIntervalFromAnotherGroupBeforeAnyWrite() throws IOException {
         ModbusClientAdapter client = mock(ModbusClientAdapter.class);
+        when(client.readRegisters(eq(SAUNA_PLC), anyList())).thenReturn(topology());
         UpdateScheduleGroupRequest request = new UpdateScheduleGroupRequest(
             0x0101,
             0x031F,
@@ -165,7 +166,7 @@ class ScheduleServiceTest {
 
         assertThrows(IllegalArgumentException.class,
             () -> new ScheduleService(client).updateScheduleGroup(1, request));
-        verifyNoInteractions(client);
+        verify(client, never()).writeRegister(anyString(), anyInt(), anyInt());
     }
 
     @Test
@@ -230,6 +231,45 @@ class ScheduleServiceTest {
         assertThrows(IllegalArgumentException.class,
             () -> new ScheduleService(client).updateScheduleGroup(1, request));
         verifyNoInteractions(client);
+    }
+
+    private static Map<Integer, Integer> topology() {
+        Map<Integer, Integer> values = new HashMap<>();
+        for (int id=1; id<=20; id++) {
+            int base=ModbusRegisterMap.scheduleBaseById(id);
+            values.put(base, id>=4 && id<=8 ? 4 : 0);
+            values.put(base+8, id>=4 && id<=6 ? 1 : id>=7 && id<=8 ? 2 : 0);
+        }
+        return values;
+    }
+
+    @Test void activatesActualMembersRatherThanHistoricalPairs() throws IOException {
+        ModbusClientAdapter client=mock(ModbusClientAdapter.class);
+        Map<Integer,Integer> values=topology();
+        values.put(0x20C8,42); values.put(0x2240,4); values.put(0x2248,42);
+        values.put(0x20C1,2); values.put(0x2241,0);
+        when(client.readRegisters(eq(SAUNA_PLC),anyList())).thenReturn(values);
+        new ScheduleService(client).toggleScheduleGroupActive(42,true);
+        verify(client).writeRegister(SAUNA_PLC,0x20C1,3);
+        verify(client).writeRegister(SAUNA_PLC,0x2241,1);
+        verify(client,never()).writeRegister(eq(SAUNA_PLC),eq(0x20E1),anyInt());
+    }
+
+    @Test void zeroGroupActivationOnlyTouchesRequestedSlot() throws IOException {
+        ModbusClientAdapter client=mock(ModbusClientAdapter.class);
+        Map<Integer,Integer> values=topology();
+        values.put(0x20C8,0); values.put(0x20E8,0); values.put(0x20C1,0);
+        when(client.readRegisters(eq(SAUNA_PLC),anyList())).thenReturn(values);
+        new ScheduleService(client).toggleScheduleGroupActive(-7,true);
+        verify(client).writeRegister(SAUNA_PLC,0x20C1,1);
+        verify(client,never()).writeRegister(eq(SAUNA_PLC),eq(0x20E1),anyInt());
+    }
+
+    @Test void incompleteTopologyNeverWritesRegisters() throws IOException {
+        ModbusClientAdapter client=mock(ModbusClientAdapter.class);
+        when(client.readRegisters(eq(SAUNA_PLC),anyList())).thenReturn(Collections.emptyMap());
+        assertThrows(IOException.class,()->new ScheduleService(client).toggleScheduleGroupActive(1,true));
+        verify(client,never()).writeRegister(anyString(),anyInt(),anyInt());
     }
 
     private static UpdateScheduleIntervalRequest interval(

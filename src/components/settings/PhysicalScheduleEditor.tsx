@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Switch } from '@/shared/ui/switch';
 import { useAuth } from '@/contexts/AuthContext';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { RefreshCw, Save, LayoutGrid, ArrowLeft, Check, Pencil, X, Info } from 'lucide-react';
 import { toast } from 'sonner';
@@ -15,6 +15,7 @@ export function PhysicalScheduleEditor() {
 }
 
 function AdminPhysicalScheduleEditor() {
+  const queryClient=useQueryClient();
   const {t}=useTranslation();
   const tr=(key:string)=>t(`physicalSchedule.${key}`);
   const query=useQuery({queryKey:['physical-schedules'],queryFn:readPhysicalSchedules,staleTime:Infinity,refetchInterval:false,refetchOnWindowFocus:false,refetchOnReconnect:false,refetchOnMount:false,retry:false});
@@ -44,13 +45,13 @@ function AdminPhysicalScheduleEditor() {
       if(result.verified) {select(result.slot);toast.success(tr('saved'));}
       else {setFailure(tr('unverified'));toast.warning(tr('unverified'));}
     } catch(e) {setFailure(e instanceof Error?e.message:String(e));}
-    finally {await query.refetch();setBusy(false);}
+    finally {await query.refetch();await queryClient.invalidateQueries({queryKey:['schedules']});setBusy(false);}
   }
   async function apply() {
     setBusy(true);setFailure('');
     try {await applyPhysicalSchedules();toast.success(tr('applied'));}
     catch(e) {setFailure(e instanceof Error?e.message:String(e));}
-    finally {await query.refetch();setBusy(false);}
+    finally {await query.refetch();await queryClient.invalidateQueries({queryKey:['schedules']});setBusy(false);}
   }
   const raw=(slot:PhysicalSlot,o:number)=>slot.values[o]==null?'—':hex(slot.values[o]);
   const state=(slot?:PhysicalSlot)=>slot?.values[1];

@@ -18,6 +18,26 @@ import static org.mockito.Mockito.*;
 
 class DeviceServiceRegisterMapTest {
 
+    @Test void actualSupplyUsesSumAndNeverSubstitutesMissingFanWithZero() throws IOException {
+        ModbusClientAdapter client=mock(ModbusClientAdapter.class);
+        Map<Integer,Integer> values=new HashMap<>();
+        int first=ModbusRegisterMap.FAN_SUPPLY_1+ModbusRegisterMap.FAN_AIRFLOW_OFFSET;
+        int second=ModbusRegisterMap.FAN_SUPPLY_2+ModbusRegisterMap.FAN_AIRFLOW_OFFSET;
+        int[] addresses={first,second,ModbusRegisterMap.AIRFLOW_REAL};
+        float[] flows={3355.4f,3380.4f,123f};
+        for(int i=0;i<addresses.length;i++) {
+            int bits=Float.floatToIntBits(flows[i]);
+            values.put(addresses[i],bits&65535);values.put(addresses[i]+1,bits>>>16);
+        }
+        when(client.readRegisters(eq(SAUNA_PLC),anyList())).thenAnswer(a->new HashMap<>(values));
+        DashboardData data=new DeviceService(client).getDashboardData();
+        assertEquals(6736.0,data.getAirflowReal());
+        assertEquals(data.getVm1().doubleValue(),data.getAirflowReal());
+        values.remove(second);
+        assertNull(new DeviceService(client).getDashboardData().getAirflowReal());
+        verify(client,never()).writeRegister(anyString(),anyInt(),anyInt());
+    }
+
     @ParameterizedTest
     @ValueSource(ints = {0, 1, 2, 3})
     void activatesUserSetWithFullStateOneAndAppliesRunningMode(int currentState) throws IOException {

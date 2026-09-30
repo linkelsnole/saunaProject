@@ -255,7 +255,6 @@ public class DeviceService {
 		);
 
 		Double targetRight = decodeFloat(data, ModbusRegisterMap.AIRFLOW_TARGET);
-		Double airflowReal = decodeFloat(data, ModbusRegisterMap.AIRFLOW_REAL);
 		Double imbalance = getValidScaledSigned(data.get(ModbusRegisterMap.AIRFLOW_IMBALANCE), 10.0);
 		Double targetLeft = targetRight;
 		if (targetRight != null && imbalance != null) {
@@ -451,7 +450,7 @@ public class DeviceService {
 			.manualSettings(manualSettings)
 			.volumeSettings(volumeSettings)
 			.airflowTarget(targetRight)
-			.airflowReal(airflowReal)
+			.airflowReal(vm1 == null ? null : vm1.doubleValue())
 			.tempSettings(tempSettings)
 			.recuperatorSettings(recuperatorSettings)
 			.debugValveSensors(debugValveSensors) //22.01.2026

@@ -13,7 +13,7 @@ public class ScheduleData {
     private ScheduleStatus status;
     private int statusRawCode;
     private int weekDayMask;
-    private int group;
+    private Integer group;
     private DateRange dateRange;
     private TimeRange timeRange;
     private int duration;

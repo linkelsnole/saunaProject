@@ -111,6 +111,22 @@ class UserManagementIntegrationTest {
         mvc.perform(post("/api/v1/auth/register").contentType("application/json").content(createBody(name,PASSWORD,"ROLE_ADMIN"))).andExpect(status().isOk());
         assertEquals(Role.ROLE_USER,users.findByUsername(name).get().getRole());
     }
+    @Test void scheduleEndpointsUsePhysicalGroupsAndRejectStaleMembership() throws Exception {
+        Map<Integer,Integer> map=new HashMap<>();
+        for(int id=1;id<=20;id++){int base=0x2000+(id-1)*32;map.put(base,0);map.put(base+8,0);}
+        map.put(0x20C0,4);map.put(0x20C8,42);map.put(0x20C1,2);
+        map.put(0x2240,3);map.put(0x2248,42);map.put(0x2241,0);
+        when(modbus.readRegisters(eq(SAUNA_PLC),anyList())).thenReturn(map);
+        mvc.perform(patch("/api/v1/devices/schedules/group/42/active").header("Authorization",auth())
+            .contentType("application/json").content("{\"isActive\":true}")).andExpect(status().isOk());
+        verify(modbus).writeRegister(SAUNA_PLC,0x20C1,3);
+        verify(modbus).writeRegister(SAUNA_PLC,0x2241,1);
+        clearInvocations(modbus);
+        mvc.perform(put("/api/v1/devices/schedules/group/42").header("Authorization",auth()).contentType("application/json")
+            .content("{\"startDate\":257,\"endDate\":3103,\"weekDays\":[\"mon\"],\"active\":true,\"intervals\":[{\"scheduleId\":7,\"startTime\":2048,\"endTime\":4608,\"airControlMode\":1,\"zone1ControlMode\":0,\"zone2ControlMode\":0}]}")).andExpect(status().isBadRequest());
+        verify(modbus,never()).writeRegister(anyString(),anyInt(),anyInt());
+    }
+
     @Test void dashboardUsesTenthsForCurrentAndSetValvePercentagesInBothZones() throws Exception {
         Map<Integer,Integer> map=new HashMap<>();
         // Literal addresses protect against a mistaken mapping change.

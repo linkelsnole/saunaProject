@@ -47,17 +47,26 @@ describe('scheduleUtils', () => {
     expect(parseWeekDays(0b1000101)).toEqual(['mon', 'wed', 'sun']);
   });
 
-  it('keeps the 301 groups, sorts intervals, and excludes UserSet', () => {
+  it('uses actual PLC groups, keeps zero slots independent, and excludes technical slots', () => {
     const groups = buildScheduleGroups([
-      schedule(5, 'DATES', 0x1200),
-      schedule(4, 'DATES', 0x0800),
-      schedule(6, 'USERSET', 0x0600),
+      {...schedule(5, 'DATES', 0x1200), group: 42},
+      {...schedule(19, 'DATES', 0x0800), group: 42},
+      {...schedule(6, 'USERSET', 0x0600), group: 42},
       schedule(7, 'DATES', 0x0900),
+      schedule(8, 'DATES', 0x1000),
+      schedule(2, 'NIGHT', 0x1000),
+      schedule(3, 'NONE', 0x1000),
+      {...schedule(9, 'DATES', 0), group: null},
     ]);
+    expect(groups.map(g => g.id)).toEqual([42, -7, -8]);
+    expect(groups[0].schedules.map(s => s.scheduleId)).toEqual([19, 5]);
+  });
 
-    expect(groups).toHaveLength(2);
-    expect(groups[0].schedules.map((item) => item.scheduleId)).toEqual([4, 5]);
-    expect(groups[1].schedules.map((item) => item.scheduleId)).toEqual([7]);
+  it('reflects physical regrouping without retaining the old slot pairs', () => {
+    expect(buildScheduleGroups([
+      {...schedule(7, 'DATES', 0), group: 6},
+      {...schedule(8, 'DATES', 0), group: 9},
+    ]).map(g => [g.id, g.schedules.map(s => s.scheduleId)])).toEqual([[6, [7]], [9, [8]]]);
   });
 
   it('normalizes an inconsistent OV value from the PLC before editing', () => {
