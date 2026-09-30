@@ -24,11 +24,12 @@ def alive(folder):
         return False
     pid = int(file.read_text())
     proc = Path('/proc')/str(pid)
-    if not proc.exists():
-        return False
-    if any(line.startswith('State:') and 'Z' in line for line in (proc/'status').read_text().splitlines()):
-        return False
-    args = (proc/'cmdline').read_bytes().split(b'\0')
+    try:
+        if any(line.startswith('State:') and 'Z' in line for line in (proc/'status').read_text().splitlines()):
+            return False
+        args = (proc/'cmdline').read_bytes().split(b'\0')
+    except FileNotFoundError:
+        return False  # Process can exit between polling its status and reading cmdline.
     if str(folder/'sauna.jar').encode() not in args:
         raise RuntimeError('Lab PID belongs to another process; refusing to signal it')
     return True
@@ -74,6 +75,7 @@ def start(folder, root, port):
                '--spring.profiles.active=prod', '--server.address=127.0.0.1',
                '--server.port=' + str(port), '--modbus.api.ip=127.0.0.1', '--modbus.api.port=1',
                '--modbus.api.log-name=', '--spring.jpa.show-sql=false',
+               '--jwt.refresh-cookie-name=sauna_lab_refresh_token',
                '--spring.datasource.url=jdbc:sqlite:' + str(folder/'users.db') + '?busy_timeout=10000',
                '--panel.updates.directory=' + str(root), '--panel.updates.channel=lab']
     with (folder/'app.log').open('w') as log:
