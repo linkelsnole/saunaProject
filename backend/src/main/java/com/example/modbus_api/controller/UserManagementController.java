@@ -27,6 +27,11 @@ public class UserManagementController {
         logs.log(ActionType.OTHER,"Изменение роли пользователя",true,"id="+id+"; role="+result.getRole());
         return result;
     }
+    @DeleteMapping("/{id}") public ResponseEntity<Void> delete(Authentication actor,@PathVariable long id) {
+        users.delete(actor.getName(),id);
+        logs.log(ActionType.OTHER,"Удаление пользователя",true,"id="+id);
+        return ResponseEntity.noContent().build();
+    }
     @ExceptionHandler(IllegalArgumentException.class) public ResponseEntity<?> invalid(Exception e) {return ResponseEntity.badRequest().body(Collections.singletonMap("message",e.getMessage()));}
     @ExceptionHandler(ConcurrentModificationException.class) public ResponseEntity<?> conflict(Exception e) {return ResponseEntity.status(409).body(Collections.singletonMap("message",e.getMessage()));}
     @ExceptionHandler(DataIntegrityViolationException.class) public ResponseEntity<?> duplicate() {return ResponseEntity.status(409).body(Collections.singletonMap("message","Такой логин уже занят"));}

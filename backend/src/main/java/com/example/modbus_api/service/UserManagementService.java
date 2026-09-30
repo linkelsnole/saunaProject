@@ -14,10 +14,13 @@ import java.util.stream.Collectors;
 
 @Service
 public class UserManagementService {
+    private final com.example.modbus_api.security.repository.RefreshTokenRepository sessions;
+    private final DeletedUsers deleted;
     private final UserRepository users;
     private final PasswordEncoder encoder;
     private final TransactionTemplate transaction;
-    public UserManagementService(UserRepository users,PasswordEncoder encoder,PlatformTransactionManager manager) {
+    public UserManagementService(UserRepository users,PasswordEncoder encoder,PlatformTransactionManager manager,com.example.modbus_api.security.repository.RefreshTokenRepository sessions,DeletedUsers deleted) {
+        this.sessions=sessions;this.deleted=deleted;
         this.users=users;this.encoder=encoder;this.transaction=new TransactionTemplate(manager);
     }
     public List<UserView> list() {return users.findAll(Sort.by("username")).stream().map(this::view).collect(Collectors.toList());}
@@ -43,6 +46,21 @@ public class UserManagementService {
             if(user.getRole()==Role.ROLE_ADMIN && users.countByRole(Role.ROLE_ADMIN)<=1) throw new IllegalArgumentException("Нельзя убрать последнего администратора");
             user.setRole(request.getRole());
             return view(users.saveAndFlush(user));
+        });
+    }
+    public synchronized void delete(String actor,long id) {
+        transaction.execute(status->{
+            requireAdmin(actor);
+            AppUser user=users.findById(id).orElseThrow(()->new NoSuchElementException("Пользователь не найден"));
+            if(user.getUsername().equals(actor)) throw new IllegalArgumentException("Нельзя удалить собственную учётную запись");
+            if(user.getRole()==Role.ROLE_ADMIN && users.countByRole(Role.ROLE_ADMIN)<=1)
+                throw new IllegalArgumentException("Нельзя удалить последнего администратора");
+            sessions.deleteByUserId(id);
+            sessions.flush();
+            deleted.record(user.getUsername());
+            users.delete(user);
+            users.flush();
+            return null;
         });
     }
     private void requireAdmin(String username) {

@@ -553,7 +553,11 @@
       "ROLE_TESTER": "Editor access is disabled; administrator role required",
       "ROLE_MGM": "Installation operator",
       "ROLE_CONFIG": "Installation configuration"
-    }
+    },
+    "delete": "Delete user",
+    "deleteTitle": "Delete",
+    "deleteHint": "The user will lose access and their sessions will end.",
+    "deleted": "User deleted"
   },
   "panelUpdate": {
     "title": "An update is available",

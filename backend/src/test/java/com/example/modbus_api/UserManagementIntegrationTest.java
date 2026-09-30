@@ -23,6 +23,8 @@ import static com.example.modbus_api.service.ModbusConstants.SAUNA_PLC;
 @AutoConfigureMockMvc
 class UserManagementIntegrationTest {
     @Autowired javax.sql.DataSource dataSource;
+    @Autowired com.example.modbus_api.config.DatabaseInitializer initializer;
+    @Autowired com.example.modbus_api.security.repository.RefreshTokenRepository refreshSessions;
     @Autowired MockMvc mvc; @Autowired ObjectMapper json; @Autowired UserRepository users; @Autowired PasswordEncoder encoder;
     @MockBean ModbusClientAdapter modbus; @MockBean ReadingsLogService readings;
     String actor,token;AppUser admin;
@@ -38,6 +40,32 @@ class UserManagementIntegrationTest {
     @BeforeEach void before() throws Exception {admin=account(Role.ROLE_ADMIN);actor=admin.getUsername();token=login(admin);}
     String auth(){return "Bearer "+token;}
     String createBody(String username,String password,String role) throws Exception {Map<String,String> m=new HashMap<>();m.put("username",username);m.put("password",password);m.put("role",role);return json.writeValueAsString(m);}
+    @Test void deleteRevokesSessionsAndOldTokensEvenWhenLoginIsRecreated() throws Exception {
+        AppUser target=account(Role.ROLE_ADMIN);
+        String oldToken=login(target);
+        String name=target.getUsername();long id=target.getId();
+        mvc.perform(delete("/api/v1/admin/users/"+id).header("Authorization",auth())).andExpect(status().isNoContent());
+        assertFalse(users.findById(id).isPresent());
+        assertTrue(refreshSessions.findAll().stream().noneMatch(s->s.getUser().getId().equals(id)));
+        mvc.perform(get("/api/v1/admin/users").header("Authorization","Bearer "+oldToken)).andExpect(status().isUnauthorized());
+        AppUser recreated=users.saveAndFlush(AppUser.builder().username(name).password(encoder.encode(PASSWORD)).role(Role.ROLE_ADMIN).build());
+        mvc.perform(get("/api/v1/admin/users").header("Authorization","Bearer "+oldToken)).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/v1/admin/users").header("Authorization","Bearer "+login(recreated))).andExpect(status().isOk());
+    }
+    @Test void deletionRequiresAdminAndCannotDeleteSelf() throws Exception {
+        AppUser reader=account(Role.ROLE_READONLY);
+        mvc.perform(delete("/api/v1/admin/users/"+admin.getId()).header("Authorization","Bearer "+login(reader))).andExpect(status().isForbidden());
+        mvc.perform(delete("/api/v1/admin/users/"+admin.getId()).header("Authorization",auth())).andExpect(status().isBadRequest());
+        assertTrue(users.findById(admin.getId()).isPresent());
+    }
+    @Test void deletedBuiltinAccountDoesNotReturnAtStartup() throws Exception {
+        String login=users.findByUsername("READER").isPresent()?"READER":"readonly";
+        AppUser target=users.findByUsername(login).get();
+        mvc.perform(delete("/api/v1/admin/users/"+target.getId()).header("Authorization",auth())).andExpect(status().isNoContent());
+        initializer.run();
+        assertFalse(users.findByUsername(login).isPresent());
+    }
+
     @Test void adminCreatesTesterAndReaderWithHashedPasswordAndNoSecretsInResponse() throws Exception {
         for(String role:new String[]{"ROLE_TESTER","ROLE_READONLY"}) {
             String name="new_"+UUID.randomUUID().toString().substring(0,12);

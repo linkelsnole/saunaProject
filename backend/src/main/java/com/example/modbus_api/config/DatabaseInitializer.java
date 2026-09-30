@@ -14,11 +14,13 @@ public class DatabaseInitializer implements CommandLineRunner {
 
     private static final Logger logger = LoggerFactory.getLogger(DatabaseInitializer.class);
 
+    private final com.example.modbus_api.service.DeletedUsers deleted;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final com.example.modbus_api.service.DefaultCredentialsRotation credentials;
 
-    public DatabaseInitializer(UserRepository userRepository, PasswordEncoder passwordEncoder, com.example.modbus_api.service.DefaultCredentialsRotation credentials) {
+    public DatabaseInitializer(UserRepository userRepository, PasswordEncoder passwordEncoder, com.example.modbus_api.service.DefaultCredentialsRotation credentials, com.example.modbus_api.service.DeletedUsers deleted) {
+        this.deleted=deleted;
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.credentials = credentials;
@@ -28,6 +30,7 @@ public class DatabaseInitializer implements CommandLineRunner {
     public void run(String... args) throws Exception {
         credentials.applyOnce();
 
+        if (!deleted.contains("READER")) {
         AppUser readerUser = userRepository.findByUsername("READER").orElse(null);
         if (readerUser == null) {
             AppUser legacyReadOnlyUser = userRepository.findByUsername("readonly").orElse(null);
@@ -53,6 +56,9 @@ public class DatabaseInitializer implements CommandLineRunner {
             logger.info("Read-only user credentials updated");
         }
 
+        }
+
+        if (!deleted.contains("MGM")) {
         AppUser mgmUser = userRepository.findByUsername("MGM").orElse(null);
         if (mgmUser == null) {
             mgmUser = AppUser.builder()
@@ -70,6 +76,9 @@ public class DatabaseInitializer implements CommandLineRunner {
         }
 
 
+        }
+
+        if (!deleted.contains("DIMA")) {
         AppUser dimaUser = userRepository.findByUsername("DIMA").orElse(null);
         if (dimaUser == null) {
             dimaUser = AppUser.builder()
@@ -86,6 +95,9 @@ public class DatabaseInitializer implements CommandLineRunner {
             logger.info("DIMA user credentials updated");
         }
 
+        }
+
+        if (!deleted.contains("SERGEY")) {
         AppUser sergeyUser = userRepository.findByUsername("SERGEY").orElse(null);
         if (sergeyUser == null) {
             sergeyUser = AppUser.builder()
@@ -101,5 +113,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             userRepository.save(sergeyUser);
             logger.info("SERGEY user credentials updated");
         }
+        }
+
     }
 }
