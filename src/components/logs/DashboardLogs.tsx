@@ -185,7 +185,7 @@ const DashboardLogs = () => {
 							{t('dashboardLogs.actions.empty')}
 						</div>
 					) : (
-						<div className="max-h-[440px] overflow-y-auto pr-1 [scrollbar-gutter:stable]">{actions.map(renderEntry)}</div>
+						<div className="space-y-3">{actions.map(renderEntry)}</div>
 					)}
 				</div>
 			</div>
