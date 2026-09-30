@@ -1,0 +1,109 @@
+import { useEffect, useRef, useState } from 'react';
+import { ArrowUpRight, LoaderCircle, TriangleAlert } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { useAuth } from '@/contexts/AuthContext';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/shared/ui/dialog';
+import { panelUpdateStatus, requestPanelUpdate, updateOutcome, type PanelUpdateStatus } from '@/api/panelUpdates';
+
+const action = 'inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-5 text-sm font-medium transition duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 focus-visible:ring-offset-2 disabled:opacity-40 motion-reduce:transition-none';
+
+export function PanelUpdateNotice() {
+  const { role } = useAuth();
+  return role === 'ROLE_ADMIN' ? <AdminUpdateNotice /> : null;
+}
+
+function AdminUpdateNotice() {
+  const { t } = useTranslation();
+  const [state, setState] = useState<PanelUpdateStatus>({ enabled: false });
+  const [dismissed, setDismissed] = useState('');
+  const [requested, setRequested] = useState('');
+  const [error, setError] = useState('');
+  const [slow, setSlow] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const sending = useRef(false);
+  const started = useRef(0);
+  const busy = Boolean(requested) && !failed;
+  const tr = (key: string) => t(`panelUpdate.${key}`);
+
+  useEffect(() => {
+    let disposed = false;
+    let timer: ReturnType<typeof setTimeout>;
+    async function poll() {
+      try {
+        const next = await panelUpdateStatus();
+        if (disposed) return;
+        setState(next);
+        if (!requested && next.version && next.version !== dismissed && (next.status === 'queued' || next.status === 'installing')) {
+          started.current = Date.now();
+          setRequested(next.version);
+        }
+        const outcome = updateOutcome(next, requested);
+        if (outcome === 'reload') { window.location.reload(); return; }
+        if (outcome === 'failed') setFailed(true);
+      } catch {
+        // During restart the server is deliberately unavailable. Keep the page and modal mounted.
+      } finally {
+        if (!disposed) {
+          if (requested && Date.now() - started.current > 180_000) setSlow(true);
+          timer = setTimeout(() => { void poll(); }, requested ? 3000 : 60_000);
+        }
+      }
+    }
+    void poll();
+    return () => { disposed = true; clearTimeout(timer); };
+  }, [requested, dismissed]);
+
+  async function update() {
+    if (!state.version || sending.current) return;
+    sending.current = true;
+    setError('');
+    setFailed(false);
+    started.current = Date.now();
+    setRequested(state.version);
+    try {
+      setState(await requestPanelUpdate(state.version));
+    } catch {
+      // The request may have succeeded before the connection closed. Read its state before retrying.
+      try {
+        const next = await panelUpdateStatus();
+        setState(next);
+        if (next.version === state.version && ['queued', 'installing', 'success'].includes(next.status ?? '')) return;
+      } catch { return; }
+      setRequested('');
+      setError(tr('requestFailed'));
+    } finally {
+      sending.current = false;
+    }
+  }
+
+  function close() {
+    if (busy && !slow) return;
+    setDismissed(state.version ?? '');
+    setRequested('');
+    setFailed(false);
+    setSlow(false);
+  }
+
+  const available = state.enabled && state.status === 'available' && state.ready && state.version !== dismissed;
+  return <Dialog open={Boolean(available || requested)} onOpenChange={open => { if (!open) close(); }}>
+    <DialogContent className={`gap-6 rounded-3xl border-zinc-200 bg-white p-7 text-zinc-950 sm:max-w-[440px] duration-150 motion-reduce:animate-none ${busy && !slow ? '[&>button:last-child]:hidden' : ''}`}
+      onEscapeKeyDown={event => { if (busy && !slow) event.preventDefault(); }}
+      onInteractOutside={event => { if (busy && !slow) event.preventDefault(); }}>
+      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-zinc-100" aria-hidden="true">
+        {failed ? <TriangleAlert size={23} /> : busy ? <LoaderCircle size={23} className="animate-spin motion-reduce:animate-none" /> : <ArrowUpRight size={24} />}
+      </div>
+      <DialogHeader className="gap-3 text-left">
+        <DialogTitle className="text-xl tracking-tight">{tr(failed ? 'failedTitle' : busy ? 'busyTitle' : 'title')}</DialogTitle>
+        <DialogDescription className="text-sm leading-6 text-zinc-500" aria-live="polite">
+          {tr(failed ? 'failedBody' : busy ? slow ? 'slowBody' : 'busyBody' : 'body')}
+        </DialogDescription>
+      </DialogHeader>
+      {error && <p role="alert" className="text-sm text-rose-600">{error}</p>}
+      {busy ? <div className="text-xs text-zinc-500" role="status">{tr(slow ? 'stillWaiting' : 'waiting')}</div> :
+        <div className="flex justify-end gap-2">
+          <button className={`${action} border border-zinc-200 bg-white hover:bg-zinc-50`} onClick={close}>{tr(failed ? 'close' : 'later')}</button>
+          {!failed && <button className={`${action} bg-zinc-950 text-white hover:bg-zinc-800 active:scale-[.98] motion-reduce:transform-none`} onClick={() => void update()} disabled={!state.ready}>{tr('update')}</button>}
+        </div>}
+    </DialogContent>
+  </Dialog>;
+}

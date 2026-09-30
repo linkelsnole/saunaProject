@@ -1,121 +1,86 @@
-import { createContext, useContext, useState, type ReactNode } from 'react';
-import type { AuthState, AuthRequest, AuthResponse } from '@/api/authTypes';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import i18n from '@/shared/config/i18n/i18n';
+import { clearAccessToken, loginRequest, logoutRequest, refreshRequest, isSessionExpired } from '@/api/authApi';
+import type { AuthRequest, AuthUser } from '@/api/authTypes';
 
-interface AuthContextType extends AuthState {
+interface AuthContextType {
+  user: AuthUser | null;
+  username: string | null;
+  role: string | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
   login: (credentials: AuthRequest) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const TOKEN_KEY = 'auth_token';
-const USERNAME_KEY = 'auth_username';
-const ROLE_KEY = 'auth_role';
-
-function isTokenExpired(token: string): boolean {
-  try {
-    const payloadBase64 = token.split('.')[1];
-    const decodedJson = atob(payloadBase64);
-    const decoded = JSON.parse(decodedJson) as { exp: number };
-    const exp = decoded.exp * 1000;
-    return Date.now() >= exp;
-  } catch (e) {
-    return true;
-  }
-}
-
-function getInitialState(): AuthState {
-  const token = localStorage.getItem(TOKEN_KEY);
-  const username = localStorage.getItem(USERNAME_KEY);
-  const role = localStorage.getItem(ROLE_KEY);
-  
-  if (token && !isTokenExpired(token)) {
-    return {
-      token,
-      username,
-      role,
-      isAuthenticated: true,
-    };
-  } else {
-    if (token) {
-      localStorage.removeItem(TOKEN_KEY);
-      localStorage.removeItem(USERNAME_KEY);
-      localStorage.removeItem(ROLE_KEY);
-    }
-    return {
-      token: null,
-      username: null,
-      role: null,
-      isAuthenticated: false,
-    };
-  }
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [authState, setAuthState] = useState<AuthState>(getInitialState);
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const login = async (credentials: AuthRequest) => {
-    let response: Response;
-    
+  const login = useCallback(async (credentials: AuthRequest) => {
     try {
-      response = await fetch('/api/v1/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(credentials),
-      });
+      const response = await loginRequest(credentials);
+      setUser(response.user);
     } catch (error) {
-      // Ошибка сети - сервер недоступен
-      throw new Error('Сервер недоступен. Проверьте подключение к серверу.');
+      // TypeError у fetch — сеть недоступна, сервер не ответил
+      if (error instanceof TypeError) {
+        throw new Error(i18n.t('login.serverUnavailable'));
+      }
+      const message = error instanceof Error ? error.message : '';
+      throw new Error(message || i18n.t('login.error'));
     }
+  }, []);
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ 
-        error: 'UNKNOWN_ERROR',
-        message: 'Ошибка входа' 
-      }));
-      throw new Error(errorData.message || 'Ошибка входа');
-    }
+  const logout = useCallback(async () => {
+    // Запрос уходит с ещё живым access-токеном, состояние чистим сразу
+    const request = logoutRequest().catch(() => undefined);
+    clearAccessToken();
+    setUser(null);
+    await request;
+  }, []);
 
-    const data: AuthResponse = await response.json();
-    
-    localStorage.setItem(TOKEN_KEY, data.token);
-    localStorage.setItem(USERNAME_KEY, data.username);
-    localStorage.setItem(ROLE_KEY, data.role);
+  // A temporary outage must not turn a valid cookie into a forced logout.
+  useEffect(() => {
+    let cancelled = false;
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
+    const bootstrap = async () => {
+      try {
+        const refreshed = await refreshRequest();
+        if (!cancelled) {
+          setUser(refreshed.user);
+          setIsLoading(false);
+        }
+      } catch (error) {
+        if (cancelled) return;
+        if (isSessionExpired(error)) {
+          clearAccessToken();
+          setUser(null);
+          setIsLoading(false);
+        } else {
+          retryTimer = setTimeout(() => { void bootstrap(); }, 5000);
+        }
+      }
+    };
+    void bootstrap();
+    return () => {
+      cancelled = true;
+      clearTimeout(retryTimer);
+    };
+  }, []);
 
-    setAuthState({
-      token: data.token,
-      username: data.username,
-      role: data.role,
-      isAuthenticated: true,
-    });
-  };
+  const value = useMemo<AuthContextType>(() => ({
+    user,
+    username: user?.username ?? null,
+    role: user?.role ?? null,
+    isAuthenticated: Boolean(user),
+    isLoading,
+    login,
+    logout,
+  }), [user, isLoading, login, logout]);
 
-  const logout = () => {
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(USERNAME_KEY);
-    localStorage.removeItem(ROLE_KEY);
-    
-    setAuthState({
-      token: null,
-      username: null,
-      role: null,
-      isAuthenticated: false,
-    });
-  };
-
-  return (
-    <AuthContext.Provider
-      value={{
-        ...authState,
-        login,
-        logout,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
@@ -125,4 +90,3 @@ export function useAuth() {
   }
   return context;
 }
-

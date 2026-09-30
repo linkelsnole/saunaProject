@@ -1,3 +1,5 @@
+import { isAggregateAlarm } from "./aggregateState";
+import { formatValvePercent } from "./valveFormat";
 import { useState, useEffect, useRef, type CSSProperties } from 'react';
 import { Layer, Line, Stage, Group, Text } from 'react-konva';
 import { Html } from 'react-konva-utils';
@@ -11,20 +13,29 @@ import { DeltaPBlock } from './DeltaPBlock';
 import { Pipe } from './Pipe';
 import { StatusLine } from './StatusLine';
 import { StatusBarBlock } from './StatusBarBlock';
+import { ModeToggle } from './ModeToggle';
 import { ControlButton } from '@/shared/ui/control-button';
-import { toggleRecuperator } from '@/api/deviceApi';
+import { setScreenMode, toggleRecuperator } from '@/api/deviceApi';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
+import i18n from '@/shared/config/i18n/i18n';
 
-const LoadingOverlay = () => (
-	<div className="absolute inset-0 z-50 flex items-center justify-center bg-white/50 backdrop-blur-[10px]">
-		<div className="flex flex-col items-center gap-3 p-6 bg-white/80 rounded-2xl shadow-lg">
-			<Loader2 className="w-10 h-10 text-blue-500 animate-spin" />
-			<span className="text-sm text-gray-600">Получение данных...</span>
+const SCHEMA_TOP_INSET = 64;
+
+const LoadingOverlay = () => {
+	const { t } = useTranslation();
+
+	return (
+		<div className="absolute inset-0 z-50 flex items-center justify-center bg-white/50 backdrop-blur-[10px]">
+			<div className="flex flex-col items-center gap-3 p-6 bg-white/80 rounded-2xl shadow-lg">
+				<Loader2 className="w-10 h-10 text-blue-500 animate-spin" />
+				<span className="text-sm text-gray-600">{t('schemaView.loading')}</span>
+			</div>
 		</div>
-	</div>
-);
+	);
+};
 
 const FanBottomLabel = ({
 	x,
@@ -54,9 +65,44 @@ const FanBottomLabel = ({
 	</div>
 );
 
+const TemperatureModeIndicators = ({
+	zone1,
+	zone2,
+}: {
+	zone1?: string | null;
+	zone2?: string | null;
+}) => {
+	const { t } = useTranslation();
+	const items = [
+		{ label: t('schemaView.zone1'), value: zone1 },
+		{ label: t('schemaView.zone2'), value: zone2 },
+	];
+
+	return (
+		<div className="flex w-full justify-between gap-3 pointer-events-none select-none" aria-label={t('schemaView.temperatureModes')}>
+			{items.map(item => (
+				<div
+					key={item.label}
+						className="w-[118px] shrink-0 text-xs font-semibold text-slate-600"
+					aria-label={`${item.label}: ${item.value ?? '—'}`}
+				>
+					<div className="mb-1 text-center text-slate-500">{item.label}</div>
+						<div className="grid grid-cols-3 rounded-xl border border-white/60 bg-white/85 p-1 shadow-md backdrop-blur-md">
+						{['ПВ', 'ОВ', 'ОРП'].map(mode => (
+								<span key={mode} className={`rounded-lg px-2 py-1 text-center whitespace-nowrap ${item.value === mode ? 'bg-emerald-500 text-white shadow-sm' : 'text-slate-400'}`}>
+								{mode}
+							</span>
+						))}
+					</div>
+				</div>
+			))}
+		</div>
+	);
+};
+
 const GlassBackground = ({ scale }: { scale: number }) => {
 	const style: CSSProperties = {
-		top: 220 * scale,
+		top: (220 + SCHEMA_TOP_INSET) * scale,
 		left: 0,
 		width: 600 * scale,
 		height: 400 * scale,
@@ -74,6 +120,7 @@ const GlassBackground = ({ scale }: { scale: number }) => {
 };
 
 const Schema = () => {
+	const { t } = useTranslation();
 	const { data, isLoading, refetch } = useDashboardData();
 	const { role } = useAuth();
 	const containerRef = useRef<HTMLDivElement>(null);
@@ -84,6 +131,7 @@ const Schema = () => {
 	const [optimisticState, setOptimisticState] = useState<{ enabled: boolean; stateCode: number } | null>(null);
 	const defaultColor = '#000';
 	const canToggleRecuperator = role === 'ROLE_ADMIN' || role === 'ROLE_USER' || role === 'ROLE_MGM';
+	const canChangeScreenMode = role === 'ROLE_ADMIN' || role === 'ROLE_USER';
 
 	const lastNotifiedErrorCode = useRef<number | null>(null);
 
@@ -93,21 +141,21 @@ const Schema = () => {
 
         const currentCode = status.stateCode;
         const stateName = status.stateName;
-        const isAlarm = (currentCode & 6) !== 0;
+        const isAlarm = isAggregateAlarm(currentCode);
 
         if (isAlarm) {
             if (lastNotifiedErrorCode.current !== currentCode) {
                 
-                toast.error("Внимание! Авария агрегата", {
-                    description: `Статус: ${stateName || 'Ошибка'} (Код ${currentCode})`,
+                toast.error(i18n.t('schemaView.alarmTitle'), {
+                    description: i18n.t('schemaView.alarmDescription', { status: stateName || i18n.t('schemaView.statusFallback'), code: currentCode }),
                     duration: 10000, 
                 });
                 lastNotifiedErrorCode.current = currentCode;
             }
         } else {
             if (lastNotifiedErrorCode.current !== null) {
-                toast.success("Система в норме", {
-                    description: "Аварийные статусы сняты",
+                toast.success(i18n.t('schemaView.normalTitle'), {
+                    description: i18n.t('schemaView.normalDescription'),
                 });
                 lastNotifiedErrorCode.current = null;
             }
@@ -130,13 +178,24 @@ const Schema = () => {
 			
 			setOptimisticState(null);
 			
-			toast.success(isCurrentlyEnabled ? 'Останов агрегата' : 'Запуск агрегата');
+			toast.success(isCurrentlyEnabled ? t('schemaView.unitStopped') : t('schemaView.unitStarted'));
 		} catch (error) {
 			setOptimisticState(null);
-			toast.error('Ошибка при переключении рекуператора');
+			toast.error(t('schemaView.toggleError'));
 			console.error(error);
 		} finally {
 			setLoading(false);
+		}
+	};
+
+	const handleScreenModeChange = async (screenMode: boolean) => {
+		try {
+			await setScreenMode(screenMode);
+			await refetch();
+		} catch (error) {
+			toast.error(t('schemaView.modeSwitchError'));
+			console.error(error);
+			throw error;
 		}
 	};
 
@@ -175,7 +234,7 @@ const Schema = () => {
 	const formatPressure = (id: string): string => {
 		const sensor = getWSensor(id);
 		const value = sensor?.value;
-		return value != null ? `${Math.round(parseFloat(value))} Па` : '-- Па';
+		return value != null ? `${Math.round(parseFloat(value))} ${t('units.pa')}` : `-- ${t('units.pa')}`;
 	};
 
 	const formatPressureSensor = (id: string): string => {
@@ -183,9 +242,9 @@ const Schema = () => {
 		const value = sensor?.value;
 		if (value != null) {
 			const intValue = Math.round(parseFloat(value));
-			return `${intValue} Па`;
+			return `${intValue} ${t('units.pa')}`;
 		}
-		return '-- Па';
+		return `-- ${t('units.pa')}`;
 	};
 
 	const formatValveLabel = (valveId: string, tempId: string): string => {
@@ -196,8 +255,7 @@ const Schema = () => {
 		const tempValue = temp?.temperature;
 		// const humidValue = temp?.humidity;
 		
-		const valveInt = valveValue != null ? Math.round(parseFloat(valveValue)) : null;
-		const valveStr = valveInt != null ? `${valveInt} %` : '-- %';
+		const valveStr = formatValvePercent(valveValue);
 		const tempStr = tempValue != null ? `${tempValue.toFixed(1)} °C` : '-- °C';
 		// const humidStr = humidValue != null ? `${humidValue.toFixed(1)} %` : '-- %';
 		
@@ -209,30 +267,28 @@ const Schema = () => {
 		const pressure = fan?.pressure;
 		const speed = fan?.speedPerc;
 		const vm = fan?.vm;
-		const pressureStr = pressure != null ? `${Math.round(pressure)} Па` : '-- Па';
+		const pressureStr = pressure != null ? `${Math.round(pressure)} ${t('units.pa')}` : `-- ${t('units.pa')}`;
 		const speedStr = speed != null ? `${speed} %` : '-- %';
-		const vmStr = vm != null ? `${vm} м³/ч` : '-- м³/ч';
+		const vmStr = vm != null ? `${vm} ${t('units.m3h')}` : `-- ${t('units.m3h')}`;
 		return `${pressureStr}\n${speedStr}\n${vmStr}`;
 	};
 
 	const formatFanBottomLabel = (type: 'vm1' | 'vm2' | 'formula' | 'vmanual'): string => {
 		if (type === 'vm1') {
 			const v = data?.vm1;
-			return v != null ? `${v} м³/ч` : '-- м³/ч';
+			return v != null ? `${v} ${t('units.m3h')}` : `-- ${t('units.m3h')}`;
 		}
 		if (type === 'vm2') {
 			const v = data?.vm2;
-			return v != null ? `${v} м³/ч` : '-- м³/ч';
+			return v != null ? `${v} ${t('units.m3h')}` : `-- ${t('units.m3h')}`;
 		}
 		if (type === 'vmanual') {
-			const v = data?.vManualProcIn;
-			return v != null ? `${v.toFixed(0)} %` : '-- %';
+			const v = getFan('Вентилятор 1')?.targetAirFlow;
+			return v != null ? `${Math.round(v)} ${t('units.m3h')}` : `-- ${t('units.m3h')}`;
 		}
 		if (type === 'formula') {
-			const inVal = data?.vManualProcIn;
-			const outVal = data?.vManualDProcOut;
-			const v = inVal != null && outVal != null ? Math.max(0, inVal - outVal) : null;
-			return v != null ? `${v.toFixed(0)} %` : '-- %';
+			const v = getFan('Вентилятор 3')?.targetAirFlow;
+			return v != null ? `${Math.round(v)} ${t('units.m3h')}` : `-- ${t('units.m3h')}`;
 		}
 		return '--';
 	};
@@ -251,11 +307,11 @@ const Schema = () => {
 	const formatRecuperator = (id: string): string => {
 		if (id === 'R_SPEED') {
 			const speed = data?.recupSpeed;
-			return speed != null ? `${speed} об/мин` : '-- об/мин';
+			return speed != null ? `${speed} ${t('units.rpm')}` : `-- ${t('units.rpm')}`;
 		}
 		if (id === 'R_TARGET') {
 			const target = data?.recupTargetRpm;
-			return target != null ? `${Number(target).toFixed(1)} об/мин` : '-- об/мин';
+			return target != null ? `${Number(target).toFixed(2)} ${t('units.rpm')}` : `-- ${t('units.rpm')}`;
 		}
 		const sensor = getRecuperator(id);
 		const value = sensor?.value;
@@ -276,12 +332,12 @@ const Schema = () => {
 		if (!container) return;
 		
 		const baseWidth = 600;
-		const baseHeight = 740;
+		const baseHeight = 740 + SCHEMA_TOP_INSET;
 		
 		const updateDimensions = () => {
 			if (!container) return;
 			const containerWidth = container.clientWidth;
-			const containerHeight = window.innerHeight ; 
+			const containerHeight = container.clientHeight || window.innerHeight;
 			const scaleX = containerWidth / baseWidth;
 			const scaleY = containerHeight / baseHeight;
 			const newScale = Math.min(scaleX, scaleY, 2); 
@@ -341,7 +397,7 @@ const Schema = () => {
 			}}
 		>
 			<GlassBackground scale={scale} />
-			<Stage 
+				<Stage
 			  width={stageSize.width} 
 			  height={stageSize.height} 
 			  ref={stageRef}
@@ -349,14 +405,32 @@ const Schema = () => {
 			  scaleY={scale}
 			  style={{
 				position: 'absolute',
-				top: -30,
+				top: 0,
 				left: 0,
 				zIndex: 20
 			  }}
-			>
-			  <Layer scale={{x: 1, y: 1}}>
-		  <Html>
-				<StatusBarBlock
+				>
+				  <Layer scale={{x: 1, y: 1}}>
+			  <Html>
+				  <div style={{ position: 'absolute', left: -8, top: 8 }}>
+					  <ModeToggle
+						  screenMode={data?.screenMode}
+						  disabled={!canChangeScreenMode || !data}
+						  onModeChange={handleScreenModeChange}
+					  />
+				  </div>
+			  </Html>
+			  <Html>
+				  <div style={{ position: 'absolute', left: 238, top: 8, width: 348 }}>
+					  <TemperatureModeIndicators
+						  zone1={data?.temperatureControlModeZone1Name}
+						  zone2={data?.temperatureControlModeZone2Name}
+					  />
+				  </div>
+			  </Html>
+			  <Group y={SCHEMA_TOP_INSET}>
+			  <Html>
+					<StatusBarBlock
 					x={165}
 					y={400}
 					width={500}
@@ -376,10 +450,10 @@ const Schema = () => {
 			  </div>
 		  </Html>
 		  <Html>
-			  <StatusLine
+				  <StatusLine
 				  x={165}
 				  y={600}
-				  text={`${data?.recuperatorStatus?.stateName ?? '—'}`}
+					  text={[data?.recuperatorStatus?.stateName, data?.ventilationModeName].filter(Boolean).join(' · ') || '—'}
 			  />
 		  </Html>
 		  <Pipe points={[160, 500, 160, 50]} type="hot" />
@@ -713,7 +787,8 @@ const Schema = () => {
 
 			
 
-          </Layer>
+			  </Group>
+	          </Layer>
         </Stage>
 		</div>
       </div>

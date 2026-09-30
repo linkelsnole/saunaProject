@@ -47,4 +47,17 @@ public class DashboardData {
     private Double recupTargetRpm;   // Обороты вала рекуператора (целевые), об/мин
     private Double recupCurrentRpm;   // Обороты вала, об/мин
     private Double recupSpeedRpm;     // Скорость вращения, об/мин
+
+    private Integer ventilationModeCode;
+    private String ventilationModeName;
+    private Double airflowTarget;
+    private Double airflowReal;
+    private VolumeSettingsDto volumeSettings;
+    private Integer temperatureControlModeZone1Code;
+    private String temperatureControlModeZone1Name;
+    private Integer temperatureControlModeZone2Code;
+    private String temperatureControlModeZone2Name;
+    private Boolean screenMode;
+
+    private CalibrationData calibration;
 }

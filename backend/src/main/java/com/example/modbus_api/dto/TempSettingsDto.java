@@ -10,6 +10,12 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class TempSettingsDto {
+    private Double outflowTarget;
+    private Double inflowTargetZone1;
+    private Double inflowTargetZone2;
+    private OrpSettingsDto orpZone1;
+    private OrpSettingsDto orpZone2;
+
     // Целевые температуры зон (в градусах Цельсия)
     private Double targetZone1;
     private Double targetZone2;
@@ -23,7 +29,8 @@ public class TempSettingsDto {
     private Double inflowFailThreshold;
     
     // Режимы управления (только чтение):
-    // 0-Off, 1-NeutralZone, 2-NZFromHeat, 3-NZFromCool, 4-NeedToCool, 5-Heating, 6-Average
+    // 0-Off, 1-NeutralZone, 2-NZFromHeat, 3-NZFromCool, 4-NeedToCool, 5-Heating, 6-Average,
+    // 7-Hood, 8-Alg2Step0, 9-Alg2Driving, 10-Alg2Stabilise, 11-Alg2HeatOff, 12-Alg2HeatInsuff
     private Integer ctrlModeZone1;
     private Integer ctrlModeZone2;
 
@@ -32,5 +39,8 @@ public class TempSettingsDto {
     private Double waterMinTNoWork;
     private Double waterMinTWork;
     private Double radTempFail;
-}
 
+    private Double valveStartupPositionProc;
+    private Integer tempControlAlgorithm;
+    private Double tempTrackingInterval;
+}

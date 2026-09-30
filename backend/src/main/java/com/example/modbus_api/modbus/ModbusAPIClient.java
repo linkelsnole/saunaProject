@@ -6,7 +6,7 @@ import retrofit2.Response;
 import retrofit2.http.*;
 
 import java.util.ArrayList;
-import com.example.modbus_api.modbus.legacy.ArchESSEvent;
+import com.example.modbus_api.dto.SystemEventDto;
 
 
 
@@ -68,11 +68,27 @@ public class ModbusAPIClient {
 
         /** Прочитать список событий */
         @POST("/api/ess2/events/list")
-        Call<ArrayList<ArchESSEvent>> getEventsList(
-            @Header("SessionToken") String token, 
-            @Query("lastminutes") int lastminutes, 
+        Call<ArrayList<SystemEventDto>> getEventsList(
+            @Header("SessionToken") String token,
+            @Query("lastminutes") int lastminutes,
             @Body com.example.modbus_api.modbus.legacy.IntegerList types
         );
-        
+
+        /** Прочитать URL обновления, сохранённый на контроллере */
+        @GET("/api/ess2/upgrade/url/read")
+        Call<JString> readUpgradeURL(@Header("SessionToken") String token);
+        /** Записать URL обновления на контроллер */
+        @POST("/api/ess2/upgrade/url/write")
+        Call<JEmpty> writeUpgradeURL(@Header("SessionToken") String token, @Query("url") String url);
+        /** Проверить/загрузить обновление */
+        @POST("/api/ess2/upgrade/load")
+        Call<ErrorList> upgradeLoad(@Header("SessionToken") String token, @Query("url") String url, @Query("force") boolean force);
+        /** Проверить/установить обновление */
+        @POST("/api/ess2/upgrade/execute")
+        Call<ErrorList> upgradeExecute(@Header("SessionToken") String token, @Query("force") boolean force, @Query("self") boolean self);
+        /** Состояние сервера (версия, релиз) */
+        @GET("/api/serverstate")
+        Call<ServerState> serverState(@Header("SessionToken") String token);
+
         }
 }

@@ -1,5 +1,7 @@
+import { PanelUpdateNotice } from "@/components/updates/PanelUpdateNotice";
 import { useRef, useCallback } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {Card,CardContent} from "@/shared/ui/card";
 
 import Schema from "@/schema/Schema";
@@ -10,47 +12,65 @@ import { PublicRoute } from "@/components/auth/PublicRoute";
 import { ManualSettingsWidget } from "@/components/settings/ManualSettingsWidget";
 import { TempSettingsWidget } from "@/components/settings/TempSettingsWidget";
 import { RecuperatorWidget } from "@/components/settings/RecuperatorWidget";
-import { SystemEventsWidget } from "@/components/logs/SystemEventsWidget";
+import { ScheduleWorkspace } from "@/components/settings/ScheduleWorkspace";
+import SystemEventsJournal from "@/components/logs/SystemEventsJournal";
+import DashboardLogs from "@/components/logs/DashboardLogs";
+import UpdateSettings from "@/components/settings/UpdateSettings";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/shared/ui/sheet";
 import { useAuth } from "@/contexts/AuthContext";
 import { SettingsSheetProvider, useSettingsSheet } from "@/contexts/SettingsSheetContext";
-import { cn } from "@/shared/lib/utils";
 
 const SWIPE_THRESHOLD = 60;
 
-const SettingsTabs = ({ isAdmin, compact }: { isAdmin: boolean; compact?: boolean }) => (
+const SettingsTabs = ({ isAdmin, compact }: { isAdmin: boolean; compact?: boolean }) => {
+	const { t } = useTranslation();
+
+	return (
 	<Tabs defaultValue="volume" className="h-full flex flex-col min-h-0">
-		<TabsList
-			className={cn(
-				isAdmin ? "grid w-full grid-cols-2 md:grid-cols-4 mb-4" : "grid w-full grid-cols-2 md:grid-cols-3 mb-4",
-				compact && "mb-4 flex w-full flex-nowrap justify-start overflow-x-auto"
-			)}
-		>
-			<TabsTrigger value="volume" className={compact ? "flex-none px-4" : ""}>Объем</TabsTrigger>
-			<TabsTrigger value="temperature" className={compact ? "flex-none px-4" : ""}>Температура</TabsTrigger>
-			<TabsTrigger value="recuperator" className={compact ? "flex-none px-4" : ""}>Рекуператор</TabsTrigger>
-			{isAdmin && <TabsTrigger value="logs" className={compact ? "flex-none px-4" : ""}>Логи</TabsTrigger>}
+		<TabsList className="mb-4 flex w-full shrink-0 flex-nowrap justify-start overflow-x-auto">
+			<TabsTrigger value="volume" className={compact ? "flex-none px-4" : "min-w-max flex-1 px-3"}>{t('app.tabs.volume')}</TabsTrigger>
+			<TabsTrigger value="temperature" className={compact ? "flex-none px-4" : "min-w-max flex-1 px-3"}>{t('app.tabs.temperature')}</TabsTrigger>
+			<TabsTrigger value="recuperator" className={compact ? "flex-none px-4" : "min-w-max flex-1 px-3"}>{t('app.tabs.recuperator')}</TabsTrigger>
+			<TabsTrigger value="schedule" className={compact ? "flex-none px-4" : "min-w-max flex-1 px-3"}>{t('app.tabs.schedule')}</TabsTrigger>
+			{isAdmin && <TabsTrigger value="errors" className={compact ? "flex-none px-4" : "min-w-max flex-1 px-3"}>{t('app.tabs.errors')}</TabsTrigger>}
+			{isAdmin && <TabsTrigger value="logs" className={compact ? "flex-none px-4" : "min-w-max flex-1 px-3"}>{t('app.tabs.logs')}</TabsTrigger>}
+			{isAdmin && <TabsTrigger value="update" className={compact ? "flex-none px-4" : "min-w-max flex-1 px-3"}>{t('app.tabs.update')}</TabsTrigger>}
 		</TabsList>
-		<TabsContent value="volume" className="flex-1 overflow-y-auto">
+		<TabsContent value="volume" className="flex-1 overflow-y-auto animate-in fade-in duration-500 motion-reduce:animate-none">
 			<ManualSettingsWidget />
 		</TabsContent>
-		<TabsContent value="temperature" className="flex-1 overflow-y-auto">
+		<TabsContent value="temperature" className="flex-1 overflow-y-auto animate-in fade-in duration-500 motion-reduce:animate-none">
 			<TempSettingsWidget />
 		</TabsContent>
-		<TabsContent value="recuperator" className="flex-1 overflow-y-auto">
+		<TabsContent value="recuperator" className="flex-1 overflow-y-auto animate-in fade-in duration-500 motion-reduce:animate-none">
 			<RecuperatorWidget />
 		</TabsContent>
+		<TabsContent value="schedule" className="flex-1 overflow-y-auto animate-in fade-in duration-500 motion-reduce:animate-none">
+			<ScheduleWorkspace />
+		</TabsContent>
 		{isAdmin && (
-			<TabsContent value="logs" className="flex-1 overflow-hidden">
-				<SystemEventsWidget />
+			<TabsContent value="errors" className="flex-1 overflow-y-auto animate-in fade-in duration-500 motion-reduce:animate-none">
+				<SystemEventsJournal />
+			</TabsContent>
+		)}
+		{isAdmin && (
+			<TabsContent value="logs" className="flex-1 overflow-y-auto animate-in fade-in duration-500 motion-reduce:animate-none">
+				<DashboardLogs />
+			</TabsContent>
+		)}
+		{isAdmin && (
+			<TabsContent value="update" className="flex-1 overflow-y-auto animate-in fade-in duration-500 motion-reduce:animate-none">
+				<UpdateSettings />
 			</TabsContent>
 		)}
 	</Tabs>
-);
+	);
+};
 
 const MainDashboard = () => {
 	const { role } = useAuth();
+	const { t } = useTranslation();
 	const sheet = useSettingsSheet();
 	const isAdmin = role === "ROLE_ADMIN";
 	const touchStartX = useRef(0);
@@ -65,6 +85,8 @@ const MainDashboard = () => {
 			sheet.setOpen(true);
 		}
 	}, [sheet]);
+
+	if (role === 'ROLE_TESTER') return <div className="h-full overflow-y-auto pb-6"><div className="mx-auto max-w-3xl rounded-3xl border border-slate-200 bg-white p-4 md:p-6"><p className="text-sm text-slate-600">{t('physicalSchedule.adminOnly')}</p></div></div>;
 
 	return (
 		<div className="w-full h-full pb-3">
@@ -98,7 +120,7 @@ const MainDashboard = () => {
 				<Sheet open={sheet.open} onOpenChange={sheet.setOpen}>
 					<SheetContent side="left" className="w-[92vw] max-w-[360px] md:hidden bg-white p-0 flex flex-col overflow-hidden">
 						<SheetHeader className="border-b border-slate-100 px-5 pr-12 pt-5 pb-4 shrink-0">
-							<SheetTitle className="text-lg">Уставки</SheetTitle>
+							<SheetTitle className="text-lg">{t('app.setpoints')}</SheetTitle>
 						</SheetHeader>
 						<div className="flex-1 min-h-0 overflow-y-auto px-5 py-4 pb-8">
 							<SettingsTabs isAdmin={isAdmin} compact />
@@ -137,6 +159,7 @@ const App = () => {
 									<div className="flex flex-1 overflow-hidden">
 										<div className="px-4 lg:px-6 w-full h-full">
 											<MainDashboard />
+											<PanelUpdateNotice />
 										</div>
 									</div>
 								</div>

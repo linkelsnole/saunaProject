@@ -1,303 +1,225 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useDashboardData } from '@/api/useDashboard';
-import { useUpdateTempSettings } from '@/api/hooks';
-import { Badge } from '@/shared/ui/badge'; 
+import { useSetTemperatureControl, useUpdateTemperatureSetpoints, useUpdateTempSettings } from '@/api/hooks';
+import type { OrpSettingsDto } from '@/api/typesApi';
+import { Badge } from '@/shared/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { GlassCard } from '@/shared/ui/GlassCard';
 import { NeoInput } from '@/shared/ui/NeoInput';
+import { useTranslation } from 'react-i18next';
 
+type ZoneMode = 0 | 1;
+type OrpField = keyof OrpSettingsDto;
 
 interface TempInputProps {
-  label: string;
+  label?: string;
   value: number | null | undefined;
-  onChange: (val: number) => void;
+  onChange: (value: number) => void;
   unit?: string;
   decimals?: number;
   readOnly?: boolean;
   inputClassName?: string;
 }
 
-const TempInput = ({
-  label,
-  value,
-  onChange,
-  unit = '°C',
-  decimals = 1,
-  readOnly = false,
-  inputClassName,
-}: TempInputProps) => {
+const TempInput = ({ label, value, onChange, unit = '°C', decimals = 1, readOnly = false, inputClassName }: TempInputProps) => {
   const [localValue, setLocalValue] = useState('');
   const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
-    if (!isEditing && value !== null && value !== undefined) {
-      setLocalValue(value.toFixed(decimals));
-    }
+    if (!isEditing) setLocalValue(value == null ? '' : value.toFixed(decimals));
   }, [value, isEditing, decimals]);
 
-  const handleBlur = () => {
+  const finishEditing = () => {
     setIsEditing(false);
-    const normalizedValue = localValue.replace(',', '.');
-    const numVal = parseFloat(normalizedValue);
-
-    if (!isNaN(numVal) && Math.abs(numVal - (value || 0)) > 0.01) {
-      onChange(numVal);
-    } else {
-      if (value !== null && value !== undefined) {
-        setLocalValue(value.toFixed(decimals));
-      }
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') e.currentTarget.blur();
+    const nextValue = Number.parseFloat(localValue.replace(',', '.'));
+    if (Number.isFinite(nextValue) && (value == null || Math.abs(nextValue - value) > 0.001)) onChange(nextValue);
+    else setLocalValue(value == null ? '' : value.toFixed(decimals));
   };
 
   return (
-    <div className="flex flex-col gap-1 w-full">
-      <span className="text-[10px] sm:text-[11px] text-slate-500 font-medium uppercase tracking-wide px-1 truncate" title={label}>
-        {label}
-      </span>
+    <div className="flex w-full min-w-0 flex-col gap-1.5">
+      {label ? <span className="flex min-h-8 items-end px-1 text-[10px] font-medium uppercase leading-tight tracking-wide text-slate-500 sm:text-[11px]">{label}</span> : null}
       <div className="relative">
         <NeoInput
           type="number"
           step={decimals === 0 ? '1' : '0.1'}
           value={localValue}
-          onChange={(e) => {
+          onChange={(event) => {
             if (readOnly) return;
             setIsEditing(true);
-            setLocalValue(e.target.value);
+            setLocalValue(event.target.value);
           }}
-          onBlur={handleBlur}
-          onKeyDown={handleKeyDown}
+          onBlur={finishEditing}
+          onKeyDown={(event) => { if (event.key === 'Enter') event.currentTarget.blur(); }}
           readOnly={readOnly}
-          onFocus={(e) => {
-            if (readOnly) e.currentTarget.blur();
-          }}
           tabIndex={readOnly ? -1 : 0}
-          className={`${readOnly ? 'text-slate-500 shadow-none bg-transparent' : 'text-slate-800'} pr-9 text-base sm:text-lg h-10 ${inputClassName ?? ''}`}
+          className={`${readOnly ? 'bg-slate-50 text-slate-500 shadow-none' : 'text-slate-800'} h-10 pr-9 text-sm sm:text-base ${inputClassName ?? ''}`}
         />
-        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-medium pointer-events-none">
-          {unit}
-        </span>
+        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-slate-400">{unit}</span>
       </div>
     </div>
   );
 };
 
-// Компонент для отображения Read-Only данных (вентили)
-const ValveMonitorRow = ({ label, value, unit = '%' }: { label: string; value: string | null | undefined; unit?: string }) => (
-  <div className="flex justify-between items-center py-2 px-3 rounded-lg bg-white/40 border border-slate-200 mb-1 last:mb-0">
-    <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wide">{label}</span>
-    <span className="font-mono text-sm font-bold text-slate-700 drop-shadow-sm">
-      {value ?? '-'} <span className="text-[10px] text-slate-400">{unit}</span>
-    </span>
+const ValveMonitorRow = ({ label, value }: { label: string; value: string | null | undefined }) => (
+  <div className="mb-1 flex items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2 last:mb-0">
+    <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">{label}</span>
+    <span className="font-mono text-sm font-bold text-slate-700">{value ?? '-'} <span className="text-[10px] text-slate-400">%</span></span>
   </div>
 );
 
-const getModeLabel = (mode: number | null | undefined): string => {
-  if (mode === null || mode === undefined) return 'N/A';
-  switch (mode) {
-    case 0: return 'Отключено';
-    case 1: return 'Нейтральная зона';
-    case 2: return 'НЗ после нагрева';
-    case 3: return 'НЗ после охлаждения';
-    case 4: return 'Охлаждение';
-    case 5: return 'Нагрев';
-    case 6: return 'Усреднение по T';
-    default: return 'Неизвестно';
-  }
+const getModeLabelKey = (mode: number | null | undefined) => {
+  const keys: Record<number, string> = {
+    0: 'tempWidget.modes.off', 1: 'tempWidget.modes.neutralZone', 2: 'tempWidget.modes.nzAfterHeating',
+    3: 'tempWidget.modes.nzAfterCooling', 4: 'tempWidget.modes.cooling', 5: 'tempWidget.modes.heating',
+    6: 'tempWidget.modes.tAveraging', 7: 'tempWidget.modes.hood', 8: 'tempWidget.modes.alg2Step0',
+    9: 'tempWidget.modes.alg2Tuning', 10: 'tempWidget.modes.alg2Stabilization', 11: 'tempWidget.modes.alg2HeatOff',
+    12: 'tempWidget.modes.alg2HeatInsuff',
+  };
+  return mode == null ? 'tempWidget.modes.na' : (keys[mode] ?? 'tempWidget.modes.unknown');
 };
 
-const getModeColor = (mode: number | null | undefined): string => {
-  if (mode === null || mode === undefined) return 'bg-slate-100/70 text-slate-500';
-  switch (mode) {
-    case 0: return 'bg-slate-100/70 text-slate-600';
-    case 1: return 'bg-slate-100/70 text-slate-600';
-    case 2: return 'bg-orange-100/70 text-orange-700';
-    case 3: return 'bg-cyan-100/70 text-cyan-700';
-    case 4: return 'bg-blue-100/70 text-blue-700';
-    case 5: return 'bg-red-100/70 text-red-700';
-    case 6: return 'bg-violet-100/70 text-violet-700';
-    default: return 'bg-slate-100/70 text-slate-500';
-  }
+const getModeColor = (mode: number | null | undefined) => {
+  if (mode === 5) return 'bg-red-100 text-red-700';
+  if (mode === 10) return 'bg-emerald-100 text-emerald-700';
+  if (mode === 4) return 'bg-blue-100 text-blue-700';
+  if (mode === 9) return 'bg-amber-100 text-amber-700';
+  return 'bg-slate-100 text-slate-600';
 };
 
+const ZoneModeSelector = ({ value, disabled, onChange }: { value: number | null | undefined; disabled: boolean; onChange: (mode: ZoneMode) => void }) => (
+  <div className="grid grid-cols-2 gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1">
+    {([{ code: 1 as ZoneMode, label: 'ПВ' }, { code: 0 as ZoneMode, label: 'ОРП' }]).map((option) => (
+      <button key={option.code} type="button" disabled={disabled} onClick={() => onChange(option.code)} className={`rounded-lg px-3 py-2 text-xs font-semibold transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-60 ${value === option.code ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-600 hover:bg-white'}`}>
+        {option.label}
+      </button>
+    ))}
+  </div>
+);
+
+const OrpTable = ({ value, readOnly, onChange }: { value: OrpSettingsDto | null | undefined; readOnly: boolean; onChange: (field: OrpField, value: number) => void }) => {
+  const rows: Array<{ label: string; current: OrpField; target: OrpField }> = [
+    { label: 'T1', current: 'currentT1', target: 'targetT1' },
+    { label: 'T2', current: 'currentT2', target: 'targetT2' },
+    { label: 'T3', current: 'currentT3', target: 'targetT3' },
+  ];
+  return (
+    <div className="overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
+      <div className="grid grid-cols-[36px_1fr_1fr] gap-2 border-b border-slate-200 px-3 py-2 text-center text-[10px] font-semibold uppercase tracking-wide text-slate-500"><span /><span>Текущая T</span><span>Целевая T</span></div>
+      <div className="space-y-2 p-3">
+        {rows.map((row) => (
+          <div key={row.label} className="grid grid-cols-[36px_1fr_1fr] items-center gap-2">
+            <span className="text-xs font-bold text-slate-500">{row.label}</span>
+            <TempInput value={value?.[row.current]} onChange={(next) => onChange(row.current, next)} decimals={0} readOnly={readOnly} />
+            <TempInput value={value?.[row.target]} onChange={(next) => onChange(row.target, next)} decimals={0} readOnly={readOnly} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
 
 export const TempSettingsWidget = () => {
+  const { t } = useTranslation();
   const { data } = useDashboardData();
-  const { mutate } = useUpdateTempSettings();
+  const { mutate: updateCommon } = useUpdateTempSettings();
+  const { mutate: changeControl, isPending: controlPending } = useSetTemperatureControl();
+  const { mutate: updateSetpoints } = useUpdateTemperatureSetpoints();
   const { role } = useAuth();
-  const isAdmin = role === 'ROLE_ADMIN';
-  const isUser = role === 'ROLE_USER';
-  const canEditZones = isAdmin || isUser;
-  const canEditAll = isAdmin;
-
+  const canEditZones = role === 'ROLE_ADMIN' || role === 'ROLE_USER';
+  const canEditAll = role === 'ROLE_ADMIN';
   const tempSettings = data?.tempSettings;
-  const sensors = data?.debugValveSensors || [];
+  const sensors = data?.debugValveSensors ?? [];
+  const getSensorValue = (id: string) => sensors.find((sensor) => sensor.id === id)?.value;
+  const zone1Mode = data?.temperatureControlModeZone1Code;
+  const zone2Mode = data?.temperatureControlModeZone2Code;
+  const outflowSelected = zone1Mode === 2 && zone2Mode === 2;
+  const previousZoneModes = useRef<[ZoneMode, ZoneMode]>([1, 1]);
 
-  const getSensorVal = (id: string) => sensors.find(s => s.id === id)?.value;
+  useEffect(() => {
+    if (zone1Mode === 0 || zone1Mode === 1) previousZoneModes.current[0] = zone1Mode;
+    if (zone2Mode === 0 || zone2Mode === 1) previousZoneModes.current[1] = zone2Mode;
+  }, [zone1Mode, zone2Mode]);
 
-  return (
-    <div className="space-y-6 pb-6">
-      
-      {/* === СЕКЦИЯ 1: ЗОНЫ (Управление + Мониторинг) === */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* ЗОНА 1 */}
-        <GlassCard className="flex flex-col h-full">
-          <div className="p-4 border-b border-slate-200 flex justify-between items-center bg-white/20">
-            <h4 className="text-sm font-bold text-slate-700 tracking-wider flex items-center gap-2">
-              <div className="w-2 h-2 bg-slate-800 rounded-full shadow-lg" />
-              Зона 1
-            </h4>
-            <Badge
-              className={`${getModeColor(tempSettings?.ctrlModeZone1)} px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide backdrop-blur-md border border-slate-200 shadow-sm`}
-            >
-              {getModeLabel(tempSettings?.ctrlModeZone1)}
-            </Badge>
-          </div>
-          <div className="p-5 flex-1 space-y-6">
-            <TempInput
-              label="Целевая температура"
-              value={tempSettings?.targetZone1}
-              onChange={(val) => mutate({ targetZone1: val })}
-              decimals={0}
-              readOnly={!canEditZones}
-              inputClassName="h-16 text-3xl tracking-tight text-center"
-            />
-            <div className="bg-slate-500/5 rounded-xl p-3 border border-slate-200 shadow-[inset_0_2px_4px_rgba(0,0,0,0.05)]">
-              <ValveMonitorRow label="Вентиль ГВ" value={getSensorVal('VHP1')} />
-              <ValveMonitorRow label="Вентиль ХВ" value={getSensorVal('VCP1')} />
-              <ValveMonitorRow label="Доп. открытие ГВ" value={getSensorVal('VOP1')} />
-            </div>
-          </div>
-        </GlassCard>
+  const setOutflowSelected = (selected: boolean) => {
+    if (!canEditZones || controlPending || selected === outflowSelected) return;
+    changeControl(selected ? { zone1Mode: 2, zone2Mode: 2 } : { zone1Mode: previousZoneModes.current[0], zone2Mode: previousZoneModes.current[1] });
+  };
 
-        {/* ЗОНА 2 */}
-        <GlassCard className="flex flex-col h-full">
-          <div className="p-4 border-b border-slate-200 flex justify-between items-center bg-white/20">
-            <h4 className="text-sm font-bold text-slate-700 tracking-wider flex items-center gap-2">
-              <div className="w-2 h-2 bg-slate-800 rounded-full shadow-lg" />
-              Зона 2
-            </h4>
-            <Badge
-              className={`${getModeColor(tempSettings?.ctrlModeZone2)} px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide backdrop-blur-md border border-slate-200 shadow-sm`}
-            >
-              {getModeLabel(tempSettings?.ctrlModeZone2)}
-            </Badge>
-          </div>
-          <div className="p-5 flex-1 space-y-6">
-            <TempInput
-              label="Целевая температура"
-              value={tempSettings?.targetZone2}
-              onChange={(val) => mutate({ targetZone2: val })}
-              decimals={0}
-              readOnly={!canEditZones}
-              inputClassName="h-16 text-3xl tracking-tight text-center"
-            />
-            <div className="bg-slate-500/5 rounded-xl p-3 border border-slate-200 shadow-[inset_0_2px_4px_rgba(0,0,0,0.05)]">
-              <ValveMonitorRow label="Вентиль ГВ" value={getSensorVal('VHP2')} />
-              <ValveMonitorRow label="Вентиль ХВ" value={getSensorVal('VCP2')} />
-              <ValveMonitorRow label="Доп. открытие ГВ" value={getSensorVal('VOP2')} />
-            </div>
-          </div>
-        </GlassCard>
-      </div>
+  const renderValves = (zone: 1 | 2) => (
+    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+      <ValveMonitorRow label={t('tempWidget.hotValve')} value={getSensorValue(`VHP${zone}`)} />
+      <ValveMonitorRow label={t('tempWidget.coldValve')} value={getSensorValue(`VCP${zone}`)} />
+      <ValveMonitorRow label={t('tempWidget.hotValveExtra')} value={getSensorValue(`VOP${zone}`)} />
+    </div>
+  );
 
-      {/* === СЕКЦИЯ 2: ПОРОГИ БЕЗОПАСНОСТИ (Вода и Приток) === */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {/* Пороги Воды */}
-        <GlassCard className="p-4">
-          <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3 flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-400/70"></span> Пороги температуры воды
-          </h4>
-          <div className="grid grid-cols-2 gap-3">
-            <TempInput
-              label="Снижение оборотов"
-              value={tempSettings?.waterWarnThreshold}
-              onChange={(val) => mutate({ waterWarnThreshold: val })}
-              readOnly={!canEditAll}
-            />
-            <TempInput
-              label="Авария"
-              value={tempSettings?.waterFailThreshold}
-              onChange={(val) => mutate({ waterFailThreshold: val })}
-              readOnly={!canEditAll}
-            />
-          </div>
-        </GlassCard>
-
-        {/* Пороги Притока */}
-        <GlassCard className="p-4">
-          <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3 flex items-center gap-2">
-             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400/70"></span> Пороги температуры ПВ
-          </h4>
-          <div className="grid grid-cols-2 gap-3">
-            <TempInput
-              label="Снижение оборотов"
-              value={tempSettings?.inflowWarnThreshold}
-              onChange={(val) => mutate({ inflowWarnThreshold: val })}
-              readOnly={!canEditAll}
-            />
-            <TempInput
-              label="Авария"
-              value={tempSettings?.inflowFailThreshold}
-              onChange={(val) => mutate({ inflowFailThreshold: val })}
-              readOnly={!canEditAll}
-            />
-          </div>
-        </GlassCard>
-      </div>
-
-      {/* === СЕКЦИЯ 3: ОТЛАДКА И НОВЫЕ ПАРАМЕТРЫ === */}
-      <GlassCard className="p-4">
-        <div className="flex items-center gap-2 mb-4">
-           <div className="bg-yellow-400/80 w-1 h-4 rounded-full"></div>
-           <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wide">
-             Уставки
-           </h4>
+  const renderZone = (zone: 1 | 2) => {
+    const controlMode = zone === 1 ? zone1Mode : zone2Mode;
+    const statusMode = zone === 1 ? tempSettings?.ctrlModeZone1 : tempSettings?.ctrlModeZone2;
+    const orp = zone === 1 ? tempSettings?.orpZone1 : tempSettings?.orpZone2;
+    return (
+      <GlassCard className="flex h-full flex-col animate-in fade-in fill-mode-backwards duration-500 motion-reduce:animate-none">
+        <div className="flex items-center justify-between border-b border-slate-200 p-4">
+          <h4 className="flex items-center gap-2 text-sm font-semibold tracking-wider text-slate-800"><span className="h-2 w-2 rounded-full bg-slate-800" />{t(`tempWidget.zone${zone}`)}</h4>
+          <Badge className={`${getModeColor(statusMode)} rounded-full border border-slate-200 px-3 py-1 text-[10px] font-bold uppercase tracking-wide`}>{t(getModeLabelKey(statusMode))}</Badge>
         </div>
-        
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-           <TempInput
-             label="Нейтральная зона T"
-             value={tempSettings?.neutralZoneT}
-             onChange={(val) => mutate({ neutralZoneT: val })}
-             readOnly={!canEditAll}
-           />
-           <TempInput
-             label="Мин. % вентилей ГВ"
-             value={tempSettings?.hotValveMinProc}
-             onChange={(val) => mutate({ hotValveMinProc: val })}
-             unit="%"
-             readOnly={!canEditAll}
-           />
-           <TempInput
-             label="Мин. Т ГВ при неработающих вент."
-             value={tempSettings?.waterMinTNoWork}
-             onChange={(val) => mutate({ waterMinTNoWork: val })}
-             readOnly={!canEditAll}
-           />
-           <TempInput
-             label="Мин. Т ГВ при работающих вент."
-             value={tempSettings?.waterMinTWork}
-             onChange={(val) => mutate({ waterMinTWork: val })}
-             readOnly={!canEditAll}
-           />
-        </div>
-
-        {/* Аварийный мониторинг радиатора */}
-        <div className="rounded-lg border border-slate-200 bg-white/40 px-3 py-2 flex justify-between items-center shadow-[inset_0_2px_4px_rgba(0,0,0,0.05)]">
-            <span className="text-xs font-bold text-slate-700 uppercase">
-              Т радиатора - авария (E2,E8)
-            </span>
-            <span className="font-mono text-base font-bold text-slate-700 bg-white/60 px-3 py-1 rounded shadow-sm border border-slate-200">
-               {tempSettings?.radTempFail ?? '-'} °C
-            </span>
+        <div className="flex-1 space-y-4 p-5">
+          <ZoneModeSelector value={controlMode} disabled={!canEditZones || controlPending} onChange={(mode) => changeControl(zone === 1 ? { zone1Mode: mode } : { zone2Mode: mode })} />
+          {controlMode === 0 ? (
+            <OrpTable value={orp} readOnly={!canEditZones} onChange={(field, value) => updateSetpoints(zone === 1 ? { orpZone1: { [field]: value } } : { orpZone2: { [field]: value } })} />
+          ) : (
+            <TempInput label={t('tempWidget.inflowTarget')} value={zone === 1 ? tempSettings?.inflowTargetZone1 : tempSettings?.inflowTargetZone2} onChange={(value) => updateSetpoints(zone === 1 ? { inflowTargetZone1: value } : { inflowTargetZone2: value })} readOnly={!canEditZones} inputClassName="h-12 text-center text-2xl tracking-tight" />
+          )}
+          {renderValves(zone)}
         </div>
       </GlassCard>
+    );
+  };
 
-      
+  const renderOutflowZone = (zone: 1 | 2) => {
+    const statusMode = zone === 1 ? tempSettings?.ctrlModeZone1 : tempSettings?.ctrlModeZone2;
+    return (
+      <GlassCard className="overflow-hidden animate-in fade-in duration-500 motion-reduce:animate-none">
+        <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
+          <h4 className="flex items-center gap-2 text-sm font-semibold text-slate-800"><span className="h-2 w-2 rounded-full bg-slate-800" />{t(`tempWidget.zone${zone}`)}</h4>
+          <Badge className={`${getModeColor(statusMode)} rounded-full border border-slate-200 px-3 py-1 text-[10px] font-bold uppercase tracking-wide`}>{t(getModeLabelKey(statusMode))}</Badge>
+        </div>
+        <div className="p-3">{renderValves(zone)}</div>
+      </GlassCard>
+    );
+  };
+
+  return (
+    <div className="space-y-4 pb-4">
+      <GlassCard className="p-4 animate-in fade-in fill-mode-backwards duration-500 motion-reduce:animate-none">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <div><h4 className="text-xs font-semibold uppercase tracking-wide text-slate-700">{t('tempWidget.controlType')}</h4><p className="mt-1 text-[11px] text-slate-400">{t('tempWidget.outflowHint')}</p></div>
+          <Badge className="border border-slate-200 bg-slate-100 text-slate-600">{outflowSelected ? 'ОВ' : 'ПВ / ОРП'}</Badge>
+        </div>
+        <div className="grid grid-cols-2 gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1">
+          <button type="button" disabled={!canEditZones || controlPending} onClick={() => setOutflowSelected(true)} className={`rounded-lg px-3 py-2.5 text-sm font-semibold transition-all duration-200 disabled:opacity-60 ${outflowSelected ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-600 hover:bg-white'}`}>{t('tempWidget.outflowMode')}</button>
+          <button type="button" disabled={!canEditZones || controlPending} onClick={() => setOutflowSelected(false)} className={`rounded-lg px-3 py-2.5 text-sm font-semibold transition-all duration-200 disabled:opacity-60 ${!outflowSelected ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-600 hover:bg-white'}`}>{t('tempWidget.zoneModes')}</button>
+        </div>
+        {outflowSelected ? <div className="mx-auto mt-4 max-w-md animate-in fade-in duration-500 motion-reduce:animate-none"><TempInput label={t('tempWidget.outflowTarget')} value={tempSettings?.outflowTarget} onChange={(value) => updateSetpoints({ outflowTarget: value })} readOnly={!canEditZones} inputClassName="h-12 text-center text-2xl tracking-tight" /></div> : null}
+      </GlassCard>
+
+      {!outflowSelected ? <div className="grid grid-cols-1 gap-4 md:grid-cols-2">{renderZone(1)}{renderZone(2)}</div> : <div className="grid grid-cols-1 gap-4 md:grid-cols-2">{renderOutflowZone(1)}{renderOutflowZone(2)}</div>}
+
+      <GlassCard className="p-4 animate-in fade-in fill-mode-backwards duration-500 [animation-delay:160ms] motion-reduce:animate-none">
+        <h4 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500"><span className="h-1.5 w-1.5 rounded-full bg-amber-400" />{t('tempWidget.temperatureSection')}</h4>
+        <TempInput label={t('tempWidget.valveStartupPosition')} value={tempSettings?.valveStartupPositionProc} onChange={(value) => updateCommon({ valveStartupPositionProc: value })} unit="%" decimals={0} readOnly={!canEditAll} />
+      </GlassCard>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <GlassCard className="p-4 animate-in fade-in duration-500 motion-reduce:animate-none"><h4 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500"><span className="h-1.5 w-1.5 rounded-full bg-blue-400" />{t('tempWidget.waterThresholds')}</h4><div className="grid grid-cols-2 gap-3"><TempInput label={t('tempWidget.rpmReduction')} value={tempSettings?.waterWarnThreshold} onChange={(value) => updateCommon({ waterWarnThreshold: value })} readOnly={!canEditAll} /><TempInput label={t('tempWidget.failure')} value={tempSettings?.waterFailThreshold} onChange={(value) => updateCommon({ waterFailThreshold: value })} readOnly={!canEditAll} /></div></GlassCard>
+        <GlassCard className="p-4 animate-in fade-in duration-500 motion-reduce:animate-none"><h4 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />{t('tempWidget.supplyThresholds')}</h4><div className="grid grid-cols-2 gap-3"><TempInput label={t('tempWidget.rpmReduction')} value={tempSettings?.inflowWarnThreshold} onChange={(value) => updateCommon({ inflowWarnThreshold: value })} readOnly={!canEditAll} /><TempInput label={t('tempWidget.failure')} value={tempSettings?.inflowFailThreshold} onChange={(value) => updateCommon({ inflowFailThreshold: value })} readOnly={!canEditAll} /></div></GlassCard>
+      </div>
+
+      <GlassCard className="p-4 animate-in fade-in duration-500 motion-reduce:animate-none">
+        <h4 className="mb-4 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-700"><span className="h-4 w-1 rounded-full bg-amber-400" />{t('tempWidget.setpoints')}</h4>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5"><TempInput label={t('tempWidget.neutralZoneT')} value={tempSettings?.neutralZoneT} onChange={(value) => updateCommon({ neutralZoneT: value })} readOnly={!canEditAll} /><TempInput label={t('tempWidget.hotValveMin')} value={tempSettings?.hotValveMinProc} onChange={(value) => updateCommon({ hotValveMinProc: value })} unit="%" readOnly={!canEditAll} /><TempInput label={t('tempWidget.waterMinTNoWork')} value={tempSettings?.waterMinTNoWork} onChange={(value) => updateCommon({ waterMinTNoWork: value })} readOnly={!canEditAll} /><TempInput label={t('tempWidget.waterMinTWork')} value={tempSettings?.waterMinTWork} onChange={(value) => updateCommon({ waterMinTWork: value })} readOnly={!canEditAll} /><TempInput label={t('tempWidget.radiatorFail')} value={tempSettings?.radTempFail} onChange={() => undefined} readOnly /></div>
+      </GlassCard>
     </div>
   );
 };

@@ -7,7 +7,12 @@ interface PublicRouteProps {
 }
 
 export function PublicRoute({ children }: PublicRouteProps) {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
+
+  // Пока идёт bootstrap-refresh, не мигаем формой логина
+  if (isLoading) {
+    return <div className="min-h-screen bg-background" />;
+  }
 
   if (isAuthenticated) {
     return <Navigate to="/" replace />;
@@ -15,4 +20,3 @@ export function PublicRoute({ children }: PublicRouteProps) {
 
   return <>{children}</>;
 }
-
