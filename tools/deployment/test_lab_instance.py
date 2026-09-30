@@ -1,4 +1,5 @@
 import os
+import socket
 from pathlib import Path
 import tempfile
 import unittest
@@ -22,6 +23,27 @@ class LabInstanceTests(unittest.TestCase):
             with patch.object(lab.os,'kill') as kill:
                 with self.assertRaises(RuntimeError): lab.stop(root)
                 kill.assert_not_called()
+
+    def test_restart_accepts_time_wait_but_refuses_active_listener(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            with socket.socket() as listener:
+                listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                listener.bind(('127.0.0.1', 0))
+                port = listener.getsockname()[1]
+                listener.listen(1)
+                with patch.object(lab.subprocess, 'Popen') as process:
+                    with self.assertRaises(OSError): lab.start(root, root, port)
+                    process.assert_not_called()
+                with socket.create_connection(('127.0.0.1', port)) as client:
+                    connection, _ = listener.accept()
+                    connection.close()  # Server closes first: creates TIME_WAIT locally.
+                    self.assertEqual(client.recv(1), b'')
+            with patch.object(lab.subprocess, 'Popen') as process:
+                process.return_value.pid = 123
+                lab.start(root, root, port)
+                process.assert_called_once()
+                self.assertEqual((root/'pid').read_text(), '123')
 
     def test_failed_lab_start_restores_old_jar_and_database(self):
         with tempfile.TemporaryDirectory() as folder:

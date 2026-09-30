@@ -70,6 +70,9 @@ def ready(folder, port, expected_index, timeout=120):
 
 def start(folder, root, port):
     with socket.socket() as sock:
+        # Closed HTTP connections may remain in TIME_WAIT after Tomcat exits.
+        # Reuse those addresses while still refusing any active listener.
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.bind(('127.0.0.1', port))  # Fail without killing anything if port is already occupied.
     command = ['java', '-Xms64m', '-Xmx256m', '-jar', str(folder/'sauna.jar'),
                '--spring.profiles.active=prod', '--server.address=127.0.0.1',
