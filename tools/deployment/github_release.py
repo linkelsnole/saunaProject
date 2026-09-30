@@ -10,6 +10,7 @@ import urllib.request
 REPOSITORY = 'linkelsnole/saunaProject'
 API = 'https://api.github.com/repos/' + REPOSITORY
 WORKFLOW = '.github/workflows/ci.yml'
+LAB_BRANCH = 'codex/sauna-updater'
 MAX_JAR = 180 * 1024 * 1024
 TAG = re.compile(r'small-(lab|production)-([1-9][0-9]*)-([1-9][0-9]*)\Z')
 
@@ -66,10 +67,11 @@ class GitHub:
         if run.get('status') != 'completed':
             return None  # publication can precede completion by a few seconds
         if not (run.get('conclusion') == 'success' and run.get('event') in ('workflow_dispatch', 'push')
-                and run.get('head_branch') == 'main' and run.get('head_sha') == manifest['commit']
+                and (run.get('head_branch') == 'main' or (target == 'lab' and run.get('head_branch') == LAB_BRANCH))
+                and run.get('head_sha') == manifest['commit']
                 and run.get('run_attempt') == manifest['run_attempt'] and run.get('path') == WORKFLOW
                 and run.get('repository', {}).get('full_name') == REPOSITORY):
-            raise RuntimeError('Release is not backed by a successful main-branch deployment workflow')
+            raise RuntimeError('Release is not backed by a successful allowed-branch deployment workflow')
         return manifest
 
     def download(self, asset, destination, sha256, size):

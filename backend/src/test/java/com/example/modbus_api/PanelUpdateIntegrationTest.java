@@ -85,6 +85,12 @@ class PanelUpdateIntegrationTest {
                 .content("{\"version\":\""+VERSION+"\"}")).andExpect(status().isServiceUnavailable());
         assertFalse(Files.exists(root.resolve("request.json")));
     }
+    @Test void productionPanelRejectsLabVersionEvenWhenOffered() throws Exception {
+        String body = "{\"version\":\"small-lab-17-1\"}";
+        mvc.perform(post("/api/v1/panel-updates").header("Authorization", auth(Role.ROLE_ADMIN))
+                .contentType("application/json").content(body)).andExpect(status().isBadRequest());
+        assertFalse(Files.exists(root.resolve("request.json")));
+    }
     @Test void absentUpdaterDoesNotOfferUpdates() throws Exception {
         Files.delete(root.resolve("ui-enabled"));
         mvc.perform(get("/api/v1/panel-updates").header("Authorization", auth(Role.ROLE_ADMIN)))

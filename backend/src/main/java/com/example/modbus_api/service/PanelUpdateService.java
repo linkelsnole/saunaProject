@@ -18,11 +18,15 @@ import java.time.Instant;
 public class PanelUpdateService {
     private final Path directory;
     private final ObjectMapper mapper;
+    private final String channel;
 
     public PanelUpdateService(@Value("${panel.updates.directory:${user.home}/.local/state/sauna-updater-small}") String directory,
-                              ObjectMapper mapper) {
+                              ObjectMapper mapper,
+                              @Value("${panel.updates.channel:production}") String channel) {
         this.directory = Paths.get(directory).toAbsolutePath().normalize();
         this.mapper = mapper;
+        if (!"production".equals(channel) && !"lab".equals(channel)) throw new IllegalArgumentException("Invalid update channel");
+        this.channel = channel;
     }
 
     private JsonNode read(String name) throws IOException {
@@ -58,7 +62,7 @@ public class PanelUpdateService {
     }
 
     public synchronized ObjectNode request(String version) throws IOException {
-        if (version == null || !version.matches("small-production-[1-9][0-9]*-[1-9][0-9]*")) {
+        if (version == null || !version.matches("small-" + channel + "-[1-9][0-9]*-[1-9][0-9]*")) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Некорректная версия");
         }
         ObjectNode current = status();

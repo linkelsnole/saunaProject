@@ -19,6 +19,7 @@ import urllib.request
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import deploy_small_remote as installer
+import lab_instance
 from github_release import GitHub, find_asset, TAG
 
 
@@ -52,6 +53,8 @@ def load_config(path):
     mode = token.stat()
     if mode.st_uid != os.getuid() or stat.S_IMODE(mode.st_mode) != 0o600:
         raise RuntimeError('GitHub token must be owned by this user with mode 0600')
+    if config.get('preview') and (config['target'] != 'lab' or config.get('preview_port') != 18082):
+        raise RuntimeError('Preview is restricted to lab port 18082')
     if config['target'] == 'production':
         if config.get('enabled') is not True or config.get('service') != 'webpanel-s':
             raise RuntimeError('Production deployment is disabled')
@@ -136,7 +139,7 @@ def once(config, github, retry=False):
         pending = read_json(root/'request.json', {})
         requested_tag = pending.get('tag', '')
         match = TAG.fullmatch(requested_tag)
-        if config['target'] == 'production' and match and match[1] == 'production':
+        if match and match[1] == config['target']:
             release = github.json('/releases/tags/' + requested_tag)
         else:
             release = github.latest(config['target'])
@@ -146,6 +149,8 @@ def once(config, github, retry=False):
             return result
         tag = release['tag_name']
         if previous.get('tag') == tag and previous.get('status') in ('success', 'failed') and not retry:
+            if config.get('preview') and previous['status'] == 'success':
+                lab_instance.ensure(config, installer)
             previous['checked_at'] = int(time.time())
             save_json(root/'status.json', previous)
             return previous  # Never restart a service every minute, including after failed installs.
@@ -169,16 +174,21 @@ def once(config, github, retry=False):
         result = dict(tag=tag, sequence=sequence, commit=manifest['commit'],
                       sha256=manifest['sha256'], target=config['target'], status='available',
                       checked_at=int(time.time()))
-        if config['target'] == 'production':
+        preview = config.get('preview', False)
+        first_preview = preview and not (lab_instance.instance(config)/'sauna.jar').exists()
+        if config['target'] == 'production' or preview:
             request = read_json(root/'request.json', {})
-            if request.get('tag') != tag:
+            if request.get('tag') != tag and not first_preview:
                 save_json(root/'status.json', result)
                 return result  # An administrator must press Update inside the web panel.
             result['status'] = 'installing'
             save_json(root/'attempt.json', result)
             save_json(root/'status.json', result)
             try:
-                production(config, cached, manifest['sha256'])
+                if preview:
+                    lab_instance.install(config, cached, installer)
+                else:
+                    production(config, cached, manifest['sha256'])
             except Exception as error:
                 result.update(status='failed', error=public_error(error), checked_at=int(time.time()))
                 save_json(root/'attempt.json', result)

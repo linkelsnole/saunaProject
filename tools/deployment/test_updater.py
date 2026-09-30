@@ -39,6 +39,20 @@ class ProtocolTests(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 github.manifest(release, 'production')
 
+    def test_lab_branch_can_publish_only_lab_releases(self):
+        release, manifest = fixture()
+        run = dict(status='completed', conclusion='success', event='push',
+                   head_branch=protocol.LAB_BRANCH, head_sha=manifest['commit'], run_attempt=1,
+                   path=protocol.WORKFLOW, repository={'full_name': protocol.REPOSITORY})
+        github = protocol.GitHub('unused')
+        github.json = Mock(side_effect=[manifest, run])
+        with self.assertRaises(RuntimeError):
+            github.manifest(release, 'production')
+        manifest['target'] = 'lab'
+        release['tag_name'] = 'small-lab-10-1'
+        github.json = Mock(side_effect=[manifest, run])
+        self.assertEqual(github.manifest(release, 'lab'), manifest)
+
     def test_running_workflow_is_waited_for(self):
         release, manifest = fixture()
         github = protocol.GitHub('unused')
@@ -128,6 +142,27 @@ class UpdateFlowTests(unittest.TestCase):
             updater.once(self.config, self.github)
         self.install.assert_not_called()
         self.github.latest.assert_not_called()
+
+    def test_preview_bootstraps_once_then_requires_exact_admin_approval(self):
+        self.config.update(target='lab', preview=True, preview_port=18082)
+        self.release['tag_name'] = 'small-lab-10-1'
+        self.manifest['target'] = 'lab'
+        folder = self.root/'instance'
+        folder.mkdir()
+        def install(*args):
+            (folder/'sauna.jar').write_bytes(b'installed')
+        with patch.object(updater.lab_instance, 'instance', return_value=folder), \
+             patch.object(updater.lab_instance, 'install', side_effect=install) as preview:
+            self.assertEqual(updater.once(self.config, self.github)['status'], 'success')
+            preview.assert_called_once()
+            self.release['tag_name'] = 'small-lab-11-1'
+            self.manifest['run_id'] = 11
+            self.assertEqual(updater.once(self.config, self.github)['status'], 'available')
+            preview.assert_called_once()
+            updater.save_json(self.root/'request.json', {'tag': 'small-lab-11-1'})
+            self.assertEqual(updater.once(self.config, self.github)['status'], 'success')
+            self.assertEqual(preview.call_count, 2)
+        self.install.assert_not_called()
 
     def test_smoke_failure_never_stops_real_service(self):
         self.smoke.side_effect = RuntimeError('broken application')

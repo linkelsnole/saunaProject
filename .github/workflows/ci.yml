@@ -29,8 +29,8 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
-      - name: Deployment is allowed only from main
-        if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+      - name: Manual deployment is allowed only from main
+        if: github.event_name == 'workflow_dispatch'
         run: test "$GITHUB_REF" = refs/heads/main
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
@@ -51,12 +51,12 @@ jobs:
         run: python3 tools/deployment/check_package.py
       - name: Describe tested artifact
         id: manifest
-        if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+        if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/sauna-updater'))
         env:
-          DEPLOY_TARGET: ${{ inputs.destination || 'production' }}
+          DEPLOY_TARGET: ${{ github.ref == 'refs/heads/codex/sauna-updater' && 'lab' || inputs.destination || 'production' }}
         run: python3 tools/deployment/make_manifest.py
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+        if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/sauna-updater'))
         with:
           name: small-sauna
           path: |
@@ -75,7 +75,7 @@ jobs:
 
   publish:
     name: Publish for server download
-    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/sauna-updater'))
     needs: check
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -91,7 +91,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           RELEASE_TAG: ${{ needs.check.outputs.tag }}
-          DEPLOY_TARGET: ${{ inputs.destination || 'production' }}
+          DEPLOY_TARGET: ${{ github.ref == 'refs/heads/codex/sauna-updater' && 'lab' || inputs.destination || 'production' }}
         run: |
           gh release create "$RELEASE_TAG" --target "$GITHUB_SHA" --draft --title "$RELEASE_TAG" --notes "Tested commit: $GITHUB_SHA. Target: $DEPLOY_TARGET. Installation requires confirmation inside the web panel."
           gh release upload "$RELEASE_TAG" release/sauna.jar release/manifest.json

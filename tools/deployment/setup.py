@@ -22,8 +22,9 @@ def main():
     files = {str(path.relative_to(ROOT)): path.read_text() for path in [
         ROOT/'tools/deploy_small_remote.py',
         ROOT/'tools/deployment/github_release.py', ROOT/'tools/deployment/updater.py',
+        ROOT/'tools/deployment/lab_instance.py',
     ]}
-    config = dict(target='lab', root=DESTINATION,
+    config = dict(target='lab', root=DESTINATION, preview=True, preview_port=18082,
                   token='/opt/webpanel/.config/sauna-updater-small/github.token')
     payload = json.dumps(dict(files=files, config=config))
     remote = r'''
@@ -42,7 +43,7 @@ for name, content in data['files'].items():
     os.replace(temporary, path)
 config = root / 'config.json'
 config.write_text(json.dumps(data['config'], indent=2)+'\n')
-subprocess.run(['/usr/bin/python3', str(root/'tools/deployment/updater.py'), '--config', str(config)], check=True, timeout=180)
+subprocess.run(['/usr/bin/python3', str(root/'tools/deployment/updater.py'), '--config', str(config)], check=True, timeout=900)
 old = subprocess.run(['crontab','-l'], text=True, capture_output=True)
 if old.returncode not in (0,1) or (old.returncode == 1 and 'no crontab' not in old.stderr):
     raise SystemExit('Cannot safely read existing crontab')
@@ -52,7 +53,7 @@ lines.append('* * * * * /usr/bin/python3 '+str(root/'tools/deployment/updater.py
 subprocess.run(['crontab','-'], input='\n'.join(lines)+'\n', text=True, check=True)
 print('Lab updater installed in '+str(root)+'. Checks every minute. Live services unchanged.')
 '''
-    subprocess.run(ssh + [shlex.join(['python3', '-c', remote])], input=payload, text=True, check=True, timeout=240)
+    subprocess.run(ssh + [shlex.join(['python3', '-c', remote])], input=payload, text=True, check=True, timeout=960)
 
 
 if __name__ == '__main__':
