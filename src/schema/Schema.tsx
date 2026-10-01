@@ -1,3 +1,4 @@
+import { zoneTarget } from "./zoneTarget";
 import { isAggregateAlarm } from "./aggregateState";
 import { formatValvePercent } from "./valveFormat";
 import { useState, useEffect, useRef, type CSSProperties } from 'react';
@@ -295,8 +296,7 @@ const Schema = () => {
 	};
 
 	const formatZoneTemperature = (id: string): string => {
-		const sensor = getClimate(id);
-		const temp = sensor?.temperature;
+		const temp = zoneTarget(data, id);
 		return temp != null ? `${temp.toFixed(1)} °C` : '-- °C';
 	};
 
