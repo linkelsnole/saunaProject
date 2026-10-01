@@ -115,7 +115,7 @@ class SettingsServiceVolumeTest {
 
     @Test
     void acceptsFullAirflowRangeForEveryMode() throws IOException {
-        for (double value : new double[]{0, 15000, 21000}) {
+        for (double value : new double[]{0, 3500, 7000}) {
             ModbusClientAdapter client=mock(ModbusClientAdapter.class);
             UpdateVolumeSettingsRequest request=new UpdateVolumeSettingsRequest();
             request.setEcoAirflow(value); request.setNormalAirflow(value);
@@ -130,7 +130,7 @@ class SettingsServiceVolumeTest {
 
     @Test
     void rejectsOutOfRangeForEveryModeBeforeAnyWrite() throws IOException {
-        for (double value : new double[]{-1, 21000.1, 21010, Double.NaN, Double.POSITIVE_INFINITY}) {
+        for (double value : new double[]{-1, 7000.1, 7010, Double.NaN, Double.POSITIVE_INFINITY}) {
             for (int field=0;field<4;field++) {
                 ModbusClientAdapter client=mock(ModbusClientAdapter.class);
                 UpdateVolumeSettingsRequest request=new UpdateVolumeSettingsRequest();
@@ -141,7 +141,7 @@ class SettingsServiceVolumeTest {
                 if(field==3)request.setManualAirflow(value);
                 IllegalArgumentException error=assertThrows(IllegalArgumentException.class,
                     ()->new SettingsService(client).updateVolumeSettings(request));
-                org.junit.jupiter.api.Assertions.assertTrue(error.getMessage().contains("0–21000"));
+                org.junit.jupiter.api.Assertions.assertTrue(error.getMessage().contains("0–7000"));
                 verify(client,never()).writeRegister(anyString(),anyInt(),anyInt());
             }
         }

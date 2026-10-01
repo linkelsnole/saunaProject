@@ -19,7 +19,7 @@ public class SettingsService {
     // Serialize complete setting operations across HTTP clients, including float words
     // and the final apply command. The intrinsic lock is reentrant and released on errors.
 	private static final double AIRFLOW_MIN = 0.0;
-	private static final double AIRFLOW_MAX = 21000.0;
+	private static final double AIRFLOW_MAX = 7000.0;
 	private static final double BOOST_MIN = -100.0;
 	private static final double BOOST_MAX = 100.0;
 
@@ -266,7 +266,7 @@ public class SettingsService {
 			return;
 		}
 		if (value.isNaN() || value.isInfinite() || value < AIRFLOW_MIN || value > AIRFLOW_MAX) {
-			throw new IllegalArgumentException(name + ": объём должен быть в диапазоне 0–21000 м³/ч");
+			throw new IllegalArgumentException(name + ": объём должен быть в диапазоне 0–7000 м³/ч");
 		}
 	}
 

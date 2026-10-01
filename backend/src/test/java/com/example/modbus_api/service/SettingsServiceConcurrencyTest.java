@@ -28,7 +28,7 @@ class SettingsServiceConcurrencyTest {
         }).when(client).writeRegister(anyString(), anyInt(), anyInt());
         ExecutorService threads = Executors.newFixedThreadPool(2);
         try {
-            UpdateVolumeSettingsRequest a = new UpdateVolumeSettingsRequest(); a.setEcoAirflow(15000.0);
+            UpdateVolumeSettingsRequest a = new UpdateVolumeSettingsRequest(); a.setEcoAirflow(3500.0);
             Future<?> one = threads.submit(() -> {if (failFirst) assertThrows(IOException.class, () -> service.updateVolumeSettings(a));
                 else assertDoesNotThrow(() -> service.updateVolumeSettings(a));});
             assertTrue(entered.await(5, TimeUnit.SECONDS));

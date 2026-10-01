@@ -10,7 +10,7 @@ import { useTranslation } from 'react-i18next';
 type PresetKey = 'ecoAirflow' | 'normalAirflow' | 'intensiveAirflow';
 
 const AIRFLOW_MIN = 0;
-const AIRFLOW_MAX = 21000;
+const AIRFLOW_MAX = 7000;
 
 const MODE_STYLES: Record<number, string> = {
   1: 'from-emerald-500 to-green-600 ring-emerald-400/50',
