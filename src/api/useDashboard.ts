@@ -3,7 +3,7 @@ import type { DashboardData } from "./typesApi";
 import { fetchWithAuth } from "./authApi";
 
 export const useDashboardData = () => {
-	const savingVolume = useIsMutating({ mutationKey: ['volume-settings'] }) > 0;
+	const savingVolume = useIsMutating({ mutationKey: ['settings-write'] }) > 0;
 	const query = useQuery<DashboardData>({
 		queryKey: ['dashboard'],
 		queryFn: async ({ signal }) => {
