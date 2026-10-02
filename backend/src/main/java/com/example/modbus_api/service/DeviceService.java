@@ -206,8 +206,6 @@ public class DeviceService {
 			REG_T_CTRL_MODE_ZONE1,
 			REG_T_CTRL_MODE_ZONE2,
 			REG_T_VALVE_STARTUP_POS,   // 0xE1 положение вентилей при запуске
-			REG_T_CTRL_ALGORITHM,      // 0xDD алгоритм управления по T
-			REG_T_TRACKING_INTERVAL,   // 0x7E интервал слежения по T
 
 			// --- НОВЫЕ РЕГИСТРЫ (22.01.2026) ---
 			REG_T_NEUTRAL_ZONE,
