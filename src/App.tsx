@@ -1,4 +1,4 @@
-import { TestingPage } from "@/components/testing/TestingWorkspace";
+import { TestingWorkspace } from "@/components/testing/TestingWorkspace";
 import { PanelUpdateNotice } from "@/components/updates/PanelUpdateNotice";
 import { useRef, useCallback } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
@@ -26,6 +26,8 @@ const SWIPE_THRESHOLD = 60;
 
 const SettingsTabs = ({ isAdmin, compact }: { isAdmin: boolean; compact?: boolean }) => {
 	const { t } = useTranslation();
+	const { role } = useAuth();
+	const isTester = role === "ROLE_TESTER";
 
 	return (
 	<Tabs defaultValue="volume" className="h-full flex flex-col min-h-0">
@@ -34,6 +36,7 @@ const SettingsTabs = ({ isAdmin, compact }: { isAdmin: boolean; compact?: boolea
 			<TabsTrigger value="temperature" className={compact ? "flex-none px-4" : "min-w-max flex-1 px-3"}>{t('app.tabs.temperature')}</TabsTrigger>
 			<TabsTrigger value="recuperator" className={compact ? "flex-none px-4" : "min-w-max flex-1 px-3"}>{t('app.tabs.recuperator')}</TabsTrigger>
 			<TabsTrigger value="schedule" className={compact ? "flex-none px-4" : "min-w-max flex-1 px-3"}>{t('app.tabs.schedule')}</TabsTrigger>
+            {isTester && <TabsTrigger value="testing" className={compact ? "flex-none px-4" : "min-w-max flex-1 px-3"}>{t('testing.title')}</TabsTrigger>}
 			{isAdmin && <TabsTrigger value="errors" className={compact ? "flex-none px-4" : "min-w-max flex-1 px-3"}>{t('app.tabs.errors')}</TabsTrigger>}
 			{isAdmin && <TabsTrigger value="logs" className={compact ? "flex-none px-4" : "min-w-max flex-1 px-3"}>{t('app.tabs.logs')}</TabsTrigger>}
 			{isAdmin && <TabsTrigger value="update" className={compact ? "flex-none px-4" : "min-w-max flex-1 px-3"}>{t('app.tabs.update')}</TabsTrigger>}
@@ -50,6 +53,9 @@ const SettingsTabs = ({ isAdmin, compact }: { isAdmin: boolean; compact?: boolea
 		<TabsContent value="schedule" className="flex-1 overflow-y-auto animate-in fade-in duration-500 motion-reduce:animate-none">
 			<ScheduleWorkspace />
 		</TabsContent>
+        {isTester && <TabsContent value="testing" className="flex-1 overflow-y-auto animate-in fade-in duration-200 motion-reduce:animate-none">
+          <TestingWorkspace embedded />
+        </TabsContent>}
 		{isAdmin && (
 			<TabsContent value="errors" className="flex-1 overflow-y-auto animate-in fade-in duration-500 motion-reduce:animate-none">
 				<SystemEventsJournal />
@@ -87,7 +93,6 @@ const MainDashboard = () => {
 		}
 	}, [sheet]);
 
-	if (role === 'ROLE_TESTER') return <TestingPage />;
 
 	return (
 		<div className="w-full h-full pb-3">
