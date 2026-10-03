@@ -13,6 +13,7 @@ LOCAL_JAR="${PROJECT_DIR}/backend/target/${JAR_NAME}"
 WEB_PORT="${WEB_PORT:-8082}"
 MODBUS_API_IP="${MODBUS_API_IP:-172.16.6.119}"
 MODBUS_API_PORT="${MODBUS_API_PORT:-4571}"
+MODBUS_LOG_NAME_SET="${MODBUS_LOG_NAME+x}"
 MODBUS_LOG_NAME="${MODBUS_LOG_NAME-}"
 SKIP_BUILD="${SKIP_BUILD:-0}"
 SSH_PASSWORD_AUTH="${SSH_PASSWORD_AUTH:-0}"
@@ -83,9 +84,9 @@ echo "Загрузка ${JAR_NAME}..."
 scp "${SSH_OPTIONS[@]}" "${SSH_IDENTITY[@]}" "${LOCAL_JAR}" "${REMOTE_HOST}:${REMOTE_DEST_DIR}/${JAR_NAME}.new"
 
 echo "Перезапуск sauna на порту ${WEB_PORT}..."
-printf -v RESTART_COMMAND 'bash -s -- %q %q %q %q %q %q %q' \
+printf -v RESTART_COMMAND 'bash -s -- %q %q %q %q %q %q %q %q' \
   "${REMOTE_DEST_DIR}" "${JAR_NAME}" "${WEB_PORT}" \
-  "${MODBUS_API_IP}" "${MODBUS_API_PORT}" "${DATABASE_NAME}" "${MODBUS_LOG_NAME}"
+  "${MODBUS_API_IP}" "${MODBUS_API_PORT}" "${DATABASE_NAME}" "${MODBUS_LOG_NAME}" "${MODBUS_LOG_NAME_SET}"
 ssh "${SSH_OPTIONS[@]}" "${SSH_IDENTITY[@]}" "${REMOTE_HOST}" "${RESTART_COMMAND}" <<'ENDSSH'
 set -Eeuo pipefail
 
@@ -96,6 +97,10 @@ MODBUS_API_IP="$4"
 MODBUS_API_PORT="$5"
 DATABASE_NAME="$6"
 MODBUS_LOG_NAME="$7"
+LOG_NAME_ARGS=()
+if [[ "$8" == "x" ]]; then
+  LOG_NAME_ARGS=("--modbus.api.log-name=${MODBUS_LOG_NAME}")
+fi
 PID_FILE="${APP_DIR}/app.pid"
 LOG_FILE="${APP_DIR}/app.log"
 
@@ -144,7 +149,7 @@ nohup java -jar "${APP_DIR}/${JAR_NAME}" \
   --server.port="${WEB_PORT}" \
   --modbus.api.ip="${MODBUS_API_IP}" \
   --modbus.api.port="${MODBUS_API_PORT}" \
-  "--modbus.api.log-name=${MODBUS_LOG_NAME}" \
+  "${LOG_NAME_ARGS[@]}" \
   "--spring.datasource.url=jdbc:sqlite:${APP_DIR}/${DATABASE_NAME}?busy_timeout=10000" \
   > "${LOG_FILE}" 2>&1 < /dev/null &
 
