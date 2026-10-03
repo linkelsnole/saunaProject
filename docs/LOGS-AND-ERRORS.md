@@ -64,3 +64,9 @@ java -jar sauna.jar --modbus.api.ip=172.16.6.119 --modbus.api.port=4569 --modbus
 Загрузка и запуск без сервиса на 301: `python3 deploy-301.py --build --data-port 4569 --log-name HomePLC`. Параметр `--log-name` необязателен; без него установщик не передаёт переопределение в Java.
 
 Для ручной загрузки уже собранного JAR с SSH-паролем запустите `./deploy-301-password.command` в терминале на Mac с VPN. Скрипт использует `webpanel@172.16.6.119`, `HomePLC`, порт данных `4569` и веб-порт `8082`; сохраняет прежний JAR в резервную копию и запускает новую версию без сервиса. Пароль вводится в стандартном запросе SSH и не сохраняется; отдельные SSH/SCP-соединения могут запросить его повторно. Для пересборки добавьте `--build`.
+
+## Device error events
+
+The live small API returned `packedValues = JSDeviceError|{...}` on 2026-10-03. The adapter decodes the payload into `deviceError` while retaining the original event and raw payload. Invalid JSON cannot discard the rest of the journal. Modes 0/1/2/3 mean isolated fault / communication lost / recovery / brief failure. Recovery remains in history and has a dedicated filter, but is excluded from the problem filter.
+
+Device names are highlighted in the journal and in an administrator-only notice above the diagram. The notice uses 24 hours of journal history; the journal summary uses the selected period. Only a dated start with no matching later recovery is listed. This is historical evidence, not a claim about the current physical state. Source, device and register distinguish intervals; missing timestamps and failed refreshes do not become a healthy status. Diagram symbol mapping is not guessed from device names. Existing journal permissions are unchanged.

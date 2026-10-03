@@ -70,4 +70,15 @@ class ControllerEventsHttpTest {
   binder.bind("modbus.api",org.springframework.boot.context.properties.bind.Bindable.ofInstance(properties));
   assertEquals("",properties.getLogName());
  }
+ @Test void decodesStructuredPayloadThroughRealHttpClient() throws Exception {
+  com.google.gson.JsonObject payload = new com.google.gson.JsonObject();
+  payload.addProperty("devName", "EM1"); payload.addProperty("devEvtMode", 2); payload.addProperty("mes", "Restored");
+  com.google.gson.JsonObject wrapper = new com.google.gson.JsonObject();
+  wrapper.addProperty("packedValues", "JSDeviceError|" + payload); wrapper.addProperty("oid", "9007199254740993");
+  response = "[" + wrapper + "]";
+  SystemEventDto event = client.getEvents(60).get(0);
+  assertEquals(Integer.valueOf(2), event.getDeviceError().getDevEvtMode());
+  assertEquals("EM1", event.getDeviceError().getDevName());
+  assertEquals("9007199254740993", event.getOid());
+ }
 }
