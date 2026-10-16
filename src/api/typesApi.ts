@@ -109,7 +109,15 @@ export interface RecuperatorSettingsDto {
   recuperatorTrackingInterval?: number | null;
 }
 
+export interface DeviceStateDto {
+  id: string;
+  baseAddress: number;
+  alarmMode: number | null;
+  alarmSeconds: number | null;
+}
+
 export interface DashboardData {
+  deviceStates?: DeviceStateDto[];
   climateSensors: ClimateSensorDto[];
   wSensors: SensorData[];
   pressureSensors: SensorData[];

@@ -111,8 +111,8 @@ jobs:
           RELEASE_TAG: ${{ steps.manifest.outputs.tag }}
           DEPLOY_TARGET: ${{ github.ref == 'refs/heads/codex/sauna-updater' && 'lab' || inputs.destination || 'production' }}
         run: |
-          gh release create "$RELEASE_TAG" --target "$GITHUB_SHA" --draft --title "$RELEASE_TAG" --notes "Tested commit: $GITHUB_SHA. Target: $DEPLOY_TARGET. Installation requires confirmation inside the web panel."
+          gh release create "$RELEASE_TAG" --target "$GITHUB_SHA" --draft --title "$RELEASE_TAG" --notes "Tested commit: $GITHUB_SHA. Target: $DEPLOY_TARGET. Automatic installation is controlled by the server updater configuration."
           gh release upload "$RELEASE_TAG" backend/target/sauna.jar backend/target/manifest.json
           gh release edit "$RELEASE_TAG" --draft=false --latest=false
           echo '### Версия опубликована' >> "$GITHUB_STEP_SUMMARY"
-          echo 'Проверки пройдены. Сервер заберёт и проверит JAR. Затем в веб-панели администратору появится кнопка «Обновить». Публикация не означает установку.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Проверки пройдены. Сервер заберёт и проверит JAR. При automatic=true сервер установит версию автоматически. Публикация не означает установку.' >> "$GITHUB_STEP_SUMMARY"

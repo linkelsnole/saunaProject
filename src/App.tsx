@@ -111,7 +111,7 @@ const MainDashboard = () => {
 							</div>
 						</CardContent>
 					</Card>
-					
+
 					{/* Правая часть - десктоп */}
 					<div className='hidden md:block h-full overflow-hidden'>
 						<Card className="h-full rounded-[24px] border border-slate-200 bg-white">
@@ -143,6 +143,7 @@ const MainDashboard = () => {
 const App = () => {
 	return (
 		<>
+			<PanelUpdateNotice />
 			<Routes>
 				<Route
 					path="/login"
@@ -167,7 +168,6 @@ const App = () => {
 									<div className="flex flex-1 overflow-hidden">
 										<div className="px-4 lg:px-6 w-full h-full">
 											<MainDashboard />
-											<PanelUpdateNotice />
 										</div>
 									</div>
 								</div>
