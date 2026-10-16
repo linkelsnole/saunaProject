@@ -1,6 +1,6 @@
 import { TestingWorkspace } from "@/components/testing/TestingWorkspace";
 import { PanelUpdateNotice } from "@/components/updates/PanelUpdateNotice";
-import { useRef, useCallback } from "react";
+import { useRef, useCallback, useState } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {Card,CardContent} from "@/shared/ui/card";
@@ -25,13 +25,13 @@ import { SettingsSheetProvider, useSettingsSheet } from "@/contexts/SettingsShee
 
 const SWIPE_THRESHOLD = 60;
 
-const SettingsTabs = ({ isAdmin, compact }: { isAdmin: boolean; compact?: boolean }) => {
+const SettingsTabs = ({ isAdmin, compact, activeTab, onTabChange }: { isAdmin: boolean; compact?: boolean; activeTab: string; onTabChange: (tab: string) => void }) => {
 	const { t } = useTranslation();
 	const { role } = useAuth();
 	const isTester = role === "ROLE_TESTER";
 
 	return (
-	<Tabs defaultValue="volume" className="h-full flex flex-col min-h-0">
+	<Tabs value={activeTab} onValueChange={onTabChange} className="h-full flex flex-col min-h-0">
 		<TabsList className="mb-4 flex w-full shrink-0 flex-nowrap justify-start overflow-x-auto">
 			<TabsTrigger value="volume" className={compact ? "flex-none px-4" : "min-w-max flex-1 px-3"}>{t('app.tabs.volume')}</TabsTrigger>
 			<TabsTrigger value="temperature" className={compact ? "flex-none px-4" : "min-w-max flex-1 px-3"}>{t('app.tabs.temperature')}</TabsTrigger>
@@ -77,6 +77,7 @@ const SettingsTabs = ({ isAdmin, compact }: { isAdmin: boolean; compact?: boolea
 };
 
 const MainDashboard = () => {
+	const [activeTab, setActiveTab] = useState("volume");
 	const { role } = useAuth();
 	const { t } = useTranslation();
 	const sheet = useSettingsSheet();
@@ -107,7 +108,7 @@ const MainDashboard = () => {
 								onTouchStart={handleTouchStart}
 								onTouchEnd={handleTouchEnd}
 							>
-								<Schema />
+								<Schema diagnostics={isAdmin && activeTab === "errors"} />
 							</div>
 						</CardContent>
 					</Card>
@@ -116,7 +117,7 @@ const MainDashboard = () => {
 					<div className='hidden md:block h-full overflow-hidden'>
 						<Card className="h-full rounded-[24px] border border-slate-200 bg-white">
 							<CardContent className="p-4 lg:p-5 xl:p-6 h-full">
-								<SettingsTabs isAdmin={isAdmin} compact={false} />
+								<SettingsTabs activeTab={activeTab} onTabChange={setActiveTab} isAdmin={isAdmin} compact={false} />
 							</CardContent>
 						</Card>
 					</div>
@@ -131,7 +132,7 @@ const MainDashboard = () => {
 							<SheetTitle className="text-lg">{t('app.setpoints')}</SheetTitle>
 						</SheetHeader>
 						<div className="flex-1 min-h-0 overflow-y-auto px-5 py-4 pb-8">
-							<SettingsTabs isAdmin={isAdmin} compact />
+							<SettingsTabs activeTab={activeTab} onTabChange={setActiveTab} isAdmin={isAdmin} compact />
 						</div>
 					</SheetContent>
 				</Sheet>
