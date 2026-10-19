@@ -1,3 +1,4 @@
+import { DeviceHighlights } from './DeviceHighlights';
 import { climateDeviceNames } from './deviceLabels';
 import { zoneTarget } from "./zoneTarget";
 import { isAggregateAlarm } from "./aggregateState";
@@ -237,7 +238,7 @@ const Schema = ({ diagnostics = false }: { diagnostics?: boolean }) => {
 	};
 
 	const formatPressure = (id: string): string => {
-		if (diagnostics) return id === 'BP1' ? 'PF1 · BP1' : id === 'BP2' ? 'PF2 · BP2' : id;
+		if (diagnostics) return id === 'BP1' ? 'PF1' : id === 'BP2' ? 'PF2' : id;
 		const sensor = getWSensor(id);
 		const value = sensor?.value;
 		return value != null ? `${Math.round(parseFloat(value))} ${t('units.pa')}` : `-- ${t('units.pa')}`;
@@ -271,7 +272,7 @@ const Schema = ({ diagnostics = false }: { diagnostics?: boolean }) => {
 	};
 
 	const formatFanLabel = (id: string): string => {
-		if (diagnostics) return ({ 'Вентилятор 1': 'M1_1\nBF11', 'Вентилятор 2': 'M1_2\nBF12', 'Вентилятор 3': 'M2_1\nBF21', 'Вентилятор 4': 'M2_2\nBF22' } as Record<string, string>)[id] ?? id;
+		if (diagnostics) return ({ 'Вентилятор 1': 'M1_1', 'Вентилятор 2': 'M1_2', 'Вентилятор 3': 'M2_1', 'Вентилятор 4': 'M2_2' } as Record<string, string>)[id] ?? id;
 		const fan = getFan(id);
 		const pressure = fan?.pressure;
 		const speed = fan?.speedPerc;
@@ -464,7 +465,7 @@ const Schema = ({ diagnostics = false }: { diagnostics?: boolean }) => {
 				  <StatusLine
 				  x={165}
 				  y={600}
-					  text={[data?.recuperatorStatus?.stateName, data?.ventilationModeName].filter(Boolean).join(' · ') || '—'}
+					  text={diagnostics ? 'S1' : [data?.recuperatorStatus?.stateName, data?.ventilationModeName].filter(Boolean).join(' · ') || '—'}
 			  />
 		  </Html>
 		  <Pipe points={[160, 500, 160, 50]} type="hot" />
@@ -489,7 +490,7 @@ const Schema = ({ diagnostics = false }: { diagnostics?: boolean }) => {
 			x={90}
 			y={435}
 			text="ΔP"
-			label={`${formatPressureSensor('BP5')}\n${formatPressureSensor('BP10')}`}
+			label={diagnostics ? 'PR1\nPR2' : `${formatPressureSensor('BP5')}\n${formatPressureSensor('BP10')}`}
 			labelWidth={70}
 			labelOffsetX={-15}
 			labelOffsetY={-5}
@@ -650,7 +651,7 @@ const Schema = ({ diagnostics = false }: { diagnostics?: boolean }) => {
 			
 			{/*MG2 MG1 - задвижки притока и вытяжки*/}
 			<Group y={640}>
-                {diagnostics && <><Text x={425} y={14} text="D1" fontSize={13} fill="#334155" /><Text x={112} y={14} text="D2" fontSize={13} fill="#334155" /></>}
+                {diagnostics && <><Text x={425} y={14} text="D1" fontSize={13} fill="#334155" /><Text x={112} y={14} text="D2" fontSize={13} fill="#334155" /><Text x={196} y={20} text="B1" fontSize={13} fill="#334155" /></>}
 				<Html>
 					<DiagonalBlock 
 						size={45}
@@ -800,7 +801,8 @@ const Schema = ({ diagnostics = false }: { diagnostics?: boolean }) => {
 			
 
 			  </Group>
-	          </Layer>
+	          {diagnostics && <Group y={SCHEMA_TOP_INSET}><DeviceHighlights /></Group>}
+                  </Layer>
         </Stage>
 		</div>
       </div>

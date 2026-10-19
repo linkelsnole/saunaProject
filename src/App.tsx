@@ -1,3 +1,4 @@
+import { selectDevice } from '@/schema/deviceIdentity';
 import { TestingWorkspace } from "@/components/testing/TestingWorkspace";
 import { PanelUpdateNotice } from "@/components/updates/PanelUpdateNotice";
 import { useRef, useCallback, useState } from "react";
@@ -117,7 +118,7 @@ const MainDashboard = () => {
 					<div className='hidden md:block h-full overflow-hidden'>
 						<Card className="h-full rounded-[24px] border border-slate-200 bg-white">
 							<CardContent className="p-4 lg:p-5 xl:p-6 h-full">
-								<SettingsTabs activeTab={activeTab} onTabChange={setActiveTab} isAdmin={isAdmin} compact={false} />
+								<SettingsTabs activeTab={activeTab} onTabChange={tab => { selectDevice(null); setActiveTab(tab); }} isAdmin={isAdmin} compact={false} />
 							</CardContent>
 						</Card>
 					</div>
@@ -132,7 +133,7 @@ const MainDashboard = () => {
 							<SheetTitle className="text-lg">{t('app.setpoints')}</SheetTitle>
 						</SheetHeader>
 						<div className="flex-1 min-h-0 overflow-y-auto px-5 py-4 pb-8">
-							<SettingsTabs activeTab={activeTab} onTabChange={setActiveTab} isAdmin={isAdmin} compact />
+							<SettingsTabs activeTab={activeTab} onTabChange={tab => { selectDevice(null); setActiveTab(tab); }} isAdmin={isAdmin} compact />
 						</div>
 					</SheetContent>
 				</Sheet>
