@@ -1,4 +1,5 @@
-import { DeviceHighlights } from './DeviceHighlights';
+import { deviceColor } from './deviceColor';
+import { useSelectedDevice } from './deviceIdentity';
 import { climateDeviceNames } from './deviceLabels';
 import { zoneTarget } from "./zoneTarget";
 import { isAggregateAlarm } from "./aggregateState";
@@ -125,7 +126,9 @@ const GlassBackground = ({ scale }: { scale: number }) => {
 
 const Schema = ({ diagnostics = false }: { diagnostics?: boolean }) => {
 	const { t } = useTranslation();
-	const { data, isLoading, refetch } = useDashboardData();
+	const { data, error, isLoading, refetch } = useDashboardData();
+ const selectedDevice = useSelectedDevice();
+ const tone = (...ids: string[]) => diagnostics ? deviceColor(ids, selectedDevice, data?.deviceStates ?? [], !error) : undefined;
 	const { role } = useAuth();
 	const containerRef = useRef<HTMLDivElement>(null);
 	const stageRef = useRef(null);
@@ -486,7 +489,7 @@ const Schema = ({ diagnostics = false }: { diagnostics?: boolean }) => {
 		  <Line points={[91, 391, 91, 481]} stroke={defaultColor} strokeWidth={2.5} />
 
 		   {/*BPCalib BP5 и BP10*/}
-		  <DeltaPBlock
+		  <DeltaPBlock tone={tone('PR1', 'PR2')}
 			x={90}
 			y={435}
 			text="ΔP"
@@ -497,7 +500,7 @@ const Schema = ({ diagnostics = false }: { diagnostics?: boolean }) => {
 		  />
 		<Html>
 			{/* BP2 */}
-			<PressureBlock 
+			<PressureBlock tone={tone('PF2')}
 					width={45}
 					height={45}
 					text={formatPressure('BP2')}
@@ -505,7 +508,7 @@ const Schema = ({ diagnostics = false }: { diagnostics?: boolean }) => {
 					y={270}
 				/>
 				{/* BP1 */}
-				<PressureBlock 
+				<PressureBlock tone={tone('PF1')}
 					width={45}
 					height={45}
 					text={formatPressure('BP1')}
@@ -521,7 +524,7 @@ const Schema = ({ diagnostics = false }: { diagnostics?: boolean }) => {
 			<Group x={285} y={150}>
 				<Html>
 					{/*REG_F_VH1 + BT8*/}
-					<SquareBlock 
+					<SquareBlock tone={tone('TH1')}
 						size={50}
 						sign="+"
 						x={0}
@@ -531,7 +534,7 @@ const Schema = ({ diagnostics = false }: { diagnostics?: boolean }) => {
 				</Html>
 				<Html>
 					{/*REG_F_VC1 + BT9*/}
-					<SquareBlock 
+					<SquareBlock tone={tone('TC1')}
 						size={50}
 						sign="-"
 						x={0}
@@ -544,7 +547,7 @@ const Schema = ({ diagnostics = false }: { diagnostics?: boolean }) => {
 			<Group x={455} y={150}>
 				<Html>
 					{/*REG_F_VH2 + BT24*/}
-					<SquareBlock 
+					<SquareBlock tone={tone('TH2')}
 						size={50}
 						sign="+"
 						x={0}
@@ -554,7 +557,7 @@ const Schema = ({ diagnostics = false }: { diagnostics?: boolean }) => {
 				</Html>
 				<Html>
 					{/*REG_F_VC2 + BT27*/}
-					<SquareBlock 
+					<SquareBlock tone={tone('TC2')}
 						size={50}
 						sign="-"
 						x={0}
@@ -565,7 +568,7 @@ const Schema = ({ diagnostics = false }: { diagnostics?: boolean }) => {
 			</Group>
 
 			<Html>
-				<TemperatureBlock 
+				<TemperatureBlock tone={tone('T5')}
 					width={100}
 					height={25}
 					text={formatTemperature('BT2')}
@@ -578,7 +581,7 @@ const Schema = ({ diagnostics = false }: { diagnostics?: boolean }) => {
 				/>
 			</Html>
 			<Html>
-				<TemperatureBlock
+				<TemperatureBlock tone={tone('T1')}
 					width={100}
 					height={25}
 					text={formatTemperature('BT3')}
@@ -592,7 +595,7 @@ const Schema = ({ diagnostics = false }: { diagnostics?: boolean }) => {
 				/>
 			</Html>
 			<Html>
-				<TemperatureBlock
+				<TemperatureBlock tone={tone('T3')}
 					width={100}
 					height={25}
 					text={formatTemperature('BT10')}
@@ -607,7 +610,7 @@ const Schema = ({ diagnostics = false }: { diagnostics?: boolean }) => {
 			</Html>
 			{/* Слева под вентилятором */}
 			<Html>
-				<TemperatureBlock 
+				<TemperatureBlock tone={tone('T2')}
 					width={100}
 					height={25}
 					text={formatTemperature('BT11')}
@@ -621,7 +624,7 @@ const Schema = ({ diagnostics = false }: { diagnostics?: boolean }) => {
 			</Html>
 			{/* Справа над - */}
 			<Html>
-				<TemperatureBlock
+				<TemperatureBlock tone={tone('T4_2')}
 					width={100}
 					height={25}
 					text={formatTemperature('BT21')}
@@ -636,7 +639,7 @@ const Schema = ({ diagnostics = false }: { diagnostics?: boolean }) => {
 			</Html>
 			{/* Слева над - */}
 			<Html>
-				<TemperatureBlock
+				<TemperatureBlock tone={tone('T4_1')}
 					width={100}
 					height={25}
 					text={formatTemperature('BT1')}
@@ -651,16 +654,16 @@ const Schema = ({ diagnostics = false }: { diagnostics?: boolean }) => {
 			
 			{/*MG2 MG1 - задвижки притока и вытяжки*/}
 			<Group y={640}>
-                {diagnostics && <><Text x={425} y={14} text="D1" fontSize={13} fill="#334155" /><Text x={112} y={14} text="D2" fontSize={13} fill="#334155" /><Text x={196} y={20} text="B1" fontSize={13} fill="#334155" /></>}
+                {diagnostics && <><Text x={425} y={14} text="D1" fontSize={13} fill={tone('D1') ?? "#334155"} /><Text x={112} y={14} text="D2" fontSize={13} fill={tone('D2') ?? "#334155"} /><Text x={196} y={20} text="B1" fontSize={13} fill="#334155" /></>}
 				<Html>
-					<DiagonalBlock 
+					<DiagonalBlock tone={tone('D1')}
 						size={45}
 						x={373}
 						isOpen={data?.damperSupply}
 					/>
 				</Html>
 				<Html>
-					<DiagonalBlock 
+					<DiagonalBlock tone={tone('D2')}
 						size={45}
 						x={136}
 						isOpen={data?.damperExhaust}
@@ -681,7 +684,7 @@ const Schema = ({ diagnostics = false }: { diagnostics?: boolean }) => {
 			
 			{/*BF12 и BF11 - объединенный компонент 2 вентиля сверху*/}
 			<Html>
-				<TriangleBlock 
+				<TriangleBlock tone={tone('M1_1')}
 					size={45}
 					x={335}
 					y={292}
@@ -690,7 +693,7 @@ const Schema = ({ diagnostics = false }: { diagnostics?: boolean }) => {
 					labelWidth={150}
 					labelGap={5}
 				/>
-				<TriangleBlock 
+				<TriangleBlock tone={tone('M1_2')}
 					size={45}
 					x={455}
 					y={292}
@@ -706,7 +709,7 @@ const Schema = ({ diagnostics = false }: { diagnostics?: boolean }) => {
 
 			{/*BF21 и BF22 - объединенный компонент*/}
 			<Html>
-				<TriangleBlock 
+				<TriangleBlock tone={tone('M2_1')}
 					size={45}
 					x={100}
 					y={543}
@@ -715,7 +718,7 @@ const Schema = ({ diagnostics = false }: { diagnostics?: boolean }) => {
 					labelWidth={150}
 					labelGap={5}
 				/>
-				<TriangleBlock 
+				<TriangleBlock tone={tone('M2_2')}
 					size={45}
 					x={220}
 					y={543}
@@ -732,7 +735,7 @@ const Schema = ({ diagnostics = false }: { diagnostics?: boolean }) => {
 
 			<Group x={120} y={410}>
 				<Html>
-					<SquareBlock 
+					<SquareBlock tone={tone('M3')}
 						size={50}
 						sign="+"
 						x={250}
@@ -740,22 +743,22 @@ const Schema = ({ diagnostics = false }: { diagnostics?: boolean }) => {
 					/>
 				</Html>
 				<Html>
-					<SquareBlock 
+					<SquareBlock tone={tone('M3')}
 						size={50}
 						sign="-"
 						x={10}
 						y={0}
 					/>
 				</Html>
-				<Line points={[50, 5, 270, 5]} stroke={defaultColor} strokeWidth={2} />
-				<Line points={[50, 47.7, 270, 47.7]} stroke={defaultColor} strokeWidth={2} />
+				<Line points={[50, 5, 270, 5]} stroke={tone('M3') ?? defaultColor} strokeWidth={2} />
+				<Line points={[50, 47.7, 270, 47.7]} stroke={tone('M3') ?? defaultColor} strokeWidth={2} />
 
 				<Text
 					text={formatRecuperator('R_TARGET')}
 					x={70}
 					y={20}
 					fontSize={diagnostics ? 13 : 10}
-					fill="#000"
+					fill={tone('M3') ?? "#000"}
 				/>
 				<Text
 					text={formatRecuperator('R_EFFICIENCY')}
@@ -801,7 +804,6 @@ const Schema = ({ diagnostics = false }: { diagnostics?: boolean }) => {
 			
 
 			  </Group>
-	          {diagnostics && <Group y={SCHEMA_TOP_INSET}><DeviceHighlights /></Group>}
                   </Layer>
         </Stage>
 		</div>
