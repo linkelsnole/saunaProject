@@ -1,3 +1,4 @@
+import { AirflowCard } from './SchemaReadings';
 import { deviceColor } from './deviceColor';
 import { useSelectedDevice } from './deviceIdentity';
 import { climateDeviceNames } from './deviceLabels';
@@ -26,7 +27,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
 import i18n from '@/shared/config/i18n/i18n';
 
-const SCHEMA_TOP_INSET = 64;
+const SCHEMA_TOP_INSET = 96;
+const SCHEMA_SIDE_INSET = 16;
 
 const LoadingOverlay = () => {
 	const { t } = useTranslation();
@@ -40,35 +42,6 @@ const LoadingOverlay = () => {
 		</div>
 	);
 };
-
-const FanBottomLabel = ({
-	x,
-	y,
-	text,
-	green = false,
-}: {
-	x: number;
-	y: number;
-	text: string;
-	green?: boolean;
-}) => (
-	<div
-		style={{
-			position: 'absolute',
-			left: x,
-			top: y,
-			transform: green ? 'translateX(-50%)' : undefined,
-			fontSize: 13,
-			lineHeight: 1.2,
-			fontFamily: 'ui-monospace, SFMono-Regular, Menlo, sans-serif',
-			color: green ? '#22c55e' : '#0F172A',
-			whiteSpace: 'nowrap',
-			zIndex: 25,
-		}}
-	>
-		{text}
-	</div>
-);
 
 const TemperatureModeIndicators = ({
 	zone1,
@@ -108,7 +81,7 @@ const TemperatureModeIndicators = ({
 const GlassBackground = ({ scale }: { scale: number }) => {
 	const style: CSSProperties = {
 		top: (220 + SCHEMA_TOP_INSET) * scale,
-		left: 0,
+		left: SCHEMA_SIDE_INSET * scale,
 		width: 600 * scale,
 		height: 400 * scale,
 		borderRadius: 30 * scale,
@@ -346,7 +319,7 @@ const Schema = ({ diagnostics = false }: { diagnostics?: boolean }) => {
 		const container = containerRef.current;
 		if (!container) return;
 		
-		const baseWidth = 600;
+		const baseWidth = 600 + SCHEMA_SIDE_INSET * 2;
 		const baseHeight = 740 + SCHEMA_TOP_INSET;
 		
 		const updateDimensions = () => {
@@ -425,7 +398,7 @@ const Schema = ({ diagnostics = false }: { diagnostics?: boolean }) => {
 				zIndex: 20
 			  }}
 				>
-				  <Layer scale={{x: 1, y: 1}}>
+				  <Layer x={SCHEMA_SIDE_INSET} scale={{x: 1, y: 1}}>
 			  <Html>
 				  <div style={{ position: 'absolute', left: -8, top: 8 }}>
 					  <ModeToggle
@@ -628,13 +601,14 @@ const Schema = ({ diagnostics = false }: { diagnostics?: boolean }) => {
 					width={100}
 					height={25}
 					text={formatTemperature('BT21')}
+                    target={diagnostics ? undefined : formatZoneTemperature('T_ZONE2')}
 					subText={formatHumidity('BT21')}
 					x={376}
 					y={42}
 					rotation={-180}
 					labelWidth={70}
-					labelOffsetX={160}
-					labelOffsetY={0}
+					labelOffsetX={152}
+					labelOffsetY={-18}
 				/>
 			</Html>
 			{/* Слева над - */}
@@ -643,12 +617,13 @@ const Schema = ({ diagnostics = false }: { diagnostics?: boolean }) => {
 					width={100}
 					height={25}
 					text={formatTemperature('BT1')}
+                    target={diagnostics ? undefined : formatZoneTemperature('T_ZONE1')}
 					subText={formatHumidity('BT1')}
 					x={152}
 					y={42}
 					labelWidth={70}
 					labelOffsetX={35}
-					labelOffsetY={0}
+					labelOffsetY={-18}
 				/>
 			</Html>
 			
@@ -703,8 +678,7 @@ const Schema = ({ diagnostics = false }: { diagnostics?: boolean }) => {
 					labelGap={5}
 				/>
 				{/* vm1, vmanual — x/y для выравнивания (x: левее/правее, y: выше/ниже) */}
-				<FanBottomLabel x={360} y={315} text={formatFanBottomLabel('vm1')} />
-				<FanBottomLabel x={395} y={290} text={formatFanBottomLabel('vmanual')} green />
+				{!diagnostics && <AirflowCard x={357} y={262} target={formatFanBottomLabel('vmanual')} actual={formatFanBottomLabel('vm1')} />}
 			</Html>
 
 			{/*BF21 и BF22 - объединенный компонент*/}
@@ -728,8 +702,7 @@ const Schema = ({ diagnostics = false }: { diagnostics?: boolean }) => {
 					labelGap={5}
 				/>
 				{/* vm2, formula — x/y для выравнивания */}
-				<FanBottomLabel x={125} y={568} text={formatFanBottomLabel('vm2')} />
-				<FanBottomLabel x={160} y={543} text={formatFanBottomLabel('formula')} green />
+				{!diagnostics && <AirflowCard x={122} y={512} target={formatFanBottomLabel('formula')} actual={formatFanBottomLabel('vm2')} />}
 			</Html>
 
 
@@ -769,24 +742,6 @@ const Schema = ({ diagnostics = false }: { diagnostics?: boolean }) => {
 				/>
 			</Group>
 
-			<Group y={210} x={320}>
-				<Text
-					text={`${formatZoneTemperature('T_ZONE1')}`}
-					x={0}
-					y={0}
-					fontSize={13}
-					fill="green"
-					fontFamily="Inter, Arial, sans-serif"
-				/>
-				<Text
-					text={`${formatZoneTemperature('T_ZONE2')}`}
-					x={110}
-					y={0}
-					fontSize={13}
-					fill="green"
-					fontFamily="Inter, Arial, sans-serif"
-				/>
-			</Group>
 		    {/*РЕКУПЕРАТОР*/}
 			<Group x={195} y={385}>
 				{/* <Text

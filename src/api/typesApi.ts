@@ -102,9 +102,9 @@ export interface UpdateTemperatureSetpointsRequest {
 }
 
 export interface RecuperatorSettingsDto {
-  targetRpmMin: number | null;   // Минимальные обороты (об/мин) - сейчас 0 или 0.5 оборотов
-  targetRpmMax: number | null;   // Максимальные обороты (об/мин) - сейчас от 1 до 7 оборотов может стоять
-  targetRpmStep: number | null;  // Шаг калибровки (об/мин) - сейчас 0.1 или 0.3 оборота
+  targetRpmMin: number | null;   // Air2Common: проценты; имя поля сохранено для совместимости API.
+  targetRpmMax: number | null;   // Air2Common: проценты; имя поля сохранено для совместимости API.
+  targetRpmStep: number | null;  // Air2Common: проценты; имя поля сохранено для совместимости API.
   /** 0x0511 интервал опроса счётчика оборотов, секунды */
   recuperatorTrackingInterval?: number | null;
 }
@@ -144,6 +144,7 @@ export interface DashboardData {
   
   // Новые регистры рекуператора
   recupTargetRpm?: number | null;   // Обороты вала рекуператора (целевые), об/мин
+  recupMaximumRpm?: number | null; // 0x0804 / 100, RPM at 100%
   recupCurrentRpm?: number | null;  // Обороты вала, об/мин
   recupSpeedRpm?: number | null;    // Скорость вращения, об/мин
 

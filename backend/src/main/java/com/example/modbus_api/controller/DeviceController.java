@@ -316,7 +316,7 @@ public class DeviceController {
         changes.floating(ModbusRegisterMap.AIRFLOW_NORMAL, "Норм", "м³/ч", request.getNormalAirflow());
         changes.floating(ModbusRegisterMap.AIRFLOW_INTENSIVE, "Интенсив", "м³/ч", request.getIntensiveAirflow());
         changes.floating(ModbusRegisterMap.AIRFLOW_MANUAL, "Ручной объём", "м³/ч", request.getManualAirflow());
-        changes.number(ModbusRegisterMap.AIRFLOW_IMBALANCE, 10, "Наддув", "%", request.getBoostPercent());
+        changes.number(ModbusRegisterMap.AIRFLOW_IMBALANCE, 10, "Дисбаланс", "%", request.getBoostPercent());
         return changes.describe();
     }
 
@@ -402,9 +402,9 @@ public class DeviceController {
 				Map<Integer, Integer> old = readOldValues(regs);
 
 				List<String> parts = new ArrayList<>();
-				appendChange(parts, old, REG_R_TARGET_RPM_MIN, ModbusRegisterMap.RECUPERATOR_SETTING_SCALE, "Мин. обороты", "об/мин", request.getTargetRpmMin());
-				appendChange(parts, old, REG_R_TARGET_RPM_MAX, ModbusRegisterMap.RECUPERATOR_SETTING_SCALE, "Макс. обороты", "об/мин", request.getTargetRpmMax());
-				appendChange(parts, old, REG_R_TARGET_RPM_STEP, ModbusRegisterMap.RECUPERATOR_SETTING_SCALE, "Шаг калибровки", "об/мин", request.getTargetRpmStep());
+				appendChange(parts, old, REG_R_TARGET_RPM_MIN, ModbusRegisterMap.RECUPERATOR_SETTING_SCALE, "Минимальная скорость", "%", request.getTargetRpmMin());
+				appendChange(parts, old, REG_R_TARGET_RPM_MAX, ModbusRegisterMap.RECUPERATOR_SETTING_SCALE, "Максимальная скорость", "%", request.getTargetRpmMax());
+				appendChange(parts, old, REG_R_TARGET_RPM_STEP, ModbusRegisterMap.RECUPERATOR_SETTING_SCALE, "Шаг изменения скорости", "%", request.getTargetRpmStep());
 				appendChange(parts, old, REG_R_TRACKING_INTERVAL, 1.0, "Интервал слежения", "с", request.getRecuperatorTrackingInterval());
 
 				settingsService.updateRecuperatorSettings(

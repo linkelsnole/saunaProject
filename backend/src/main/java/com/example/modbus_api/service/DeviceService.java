@@ -305,10 +305,10 @@ public class DeviceService {
 		List<SensorData> debugValveSensors = Arrays.asList(
 			createSensor("VHP1", "Положение вентиля ГВ зона 1", getValidScaledSigned(data.get(REG_VALVE_HEAT_POS1), ModbusRegisterMap.VALVE_PERCENT_SCALE), "%"),
 			createSensor("VCP1", "Положение вентиля ХВ зона 1", getValidScaledSigned(data.get(REG_VALVE_COOL_POS1), ModbusRegisterMap.VALVE_PERCENT_SCALE), "%"),
-			createSensor("VOP1", "% доп. открытия вентиля ГВ зона 1", getValidScaledSigned(data.get(REG_VALVE_OPEN_PROC1), ModbusRegisterMap.VALVE_PERCENT_SCALE), "%"),
+			createSensor("VOP1", "% доп. открытия вентиля ГВ зона 1", getValidScaledSigned(data.get(REG_VALVE_OPEN_PROC1), 100.0), "%"),
 			createSensor("VHP2", "Положение вентиля ГВ зона 2", getValidScaledSigned(data.get(REG_VALVE_HEAT_POS2), ModbusRegisterMap.VALVE_PERCENT_SCALE), "%"),
 			createSensor("VCP2", "Положение вентиля ХВ зона 2", getValidScaledSigned(data.get(REG_VALVE_COOL_POS2), ModbusRegisterMap.VALVE_PERCENT_SCALE), "%"),
-			createSensor("VOP2", "% доп. открытия вентиля ГВ зона 2", getValidScaledSigned(data.get(REG_VALVE_OPEN_PROC2), ModbusRegisterMap.VALVE_PERCENT_SCALE), "%")
+			createSensor("VOP2", "% доп. открытия вентиля ГВ зона 2", getValidScaledSigned(data.get(REG_VALVE_OPEN_PROC2), 100.0), "%")
 		);
 
 		
@@ -471,6 +471,7 @@ public class DeviceService {
 			.recupStateCode(recupStateCode)
 			.recupStateName(recupStateName)
 			.recupTargetRpm(recupTargetRpm)
+			.recupMaximumRpm(getValidScaledSigned(data.get(ModbusRegisterMap.RECUPERATOR_MAX_RPM), 100.0))
 			.recupCurrentRpm(recupCurrentRpm)
 			.recupSpeedRpm(recupSpeedRpm)
 			.ventilationModeCode(ventilationModeCode)
