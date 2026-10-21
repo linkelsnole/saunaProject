@@ -82,7 +82,7 @@
   },
   "manualWidget": {
     "supplySpeed": "Supply air fan speed",
-    "boost": "Boost (supply-exhaust)"
+    "boost": "Airflow imbalance (supply-exhaust)"
   },
   "volumeWidget": {
     "boostHint": "Supply over exhaust",
@@ -107,7 +107,7 @@
     "presetsTitle": "Airflow by mode",
     "readOnly": "Read only",
     "manualTarget": "Manual ventilation airflow",
-    "boost": "Boost (supply above exhaust)"
+    "boost": "Airflow imbalance"
   },
   "tempWidget": {
     "zone1": "Zone 1",
