@@ -138,6 +138,8 @@ public class DeviceService {
         List<Integer> statusBases = new ArrayList<>(sensorBases);
         for (int base = 0x1200; base <= 0x1270; base += 0x10) statusBases.add(base);
         List<Integer> allRegs = new ArrayList<>();
+        allRegs.add(ModbusRegisterMap.FILTER_SUPPLY_COEFFICIENT);
+        allRegs.add(ModbusRegisterMap.FILTER_EXHAUST_COEFFICIENT);
         for (int base : statusBases) {
             allRegs.add(base + ModbusRegisterMap.SENSOR_ALARM_MODE_OFFSET);
             allRegs.add(base + ModbusRegisterMap.SENSOR_ALARM_TIME_OFFSET);
@@ -290,8 +292,8 @@ public class DeviceService {
 
 		// --- ДАВЛЕНИЕ (Рекуп)  ---
 		List<SensorData> pressureSensors = Arrays.asList(
-			createSensor("BP5", "Давление рекуператора ОВ-ВВ", decodeFloat(data, ModbusRegisterMap.PRESSURE_RECUP_EXHAUST), "Pa"),
-			createSensor("BP10", "Давление рекуператора НВ-ОВ", decodeFloat(data, ModbusRegisterMap.PRESSURE_RECUP_SUPPLY), "Pa")
+			createSensor("BP5", "Давление рекуператора ОВ-ВВ", readDisplayPressure(data, ModbusRegisterMap.PRESSURE_RECUP_EXHAUST), "Pa"),
+			createSensor("BP10", "Давление рекуператора НВ-ОВ", readDisplayPressure(data, ModbusRegisterMap.PRESSURE_RECUP_SUPPLY), "Pa")
 		);
 
 		// --- КЛАПАНЫ ---
@@ -446,6 +448,8 @@ public class DeviceService {
 			.build();
 		
 		return DashboardData.builder()
+            .filterSupplyCoefficient(getValidScaledSigned(data.get(ModbusRegisterMap.FILTER_SUPPLY_COEFFICIENT), 100.0))
+            .filterExhaustCoefficient(getValidScaledSigned(data.get(ModbusRegisterMap.FILTER_EXHAUST_COEFFICIENT), 100.0))
             .deviceStates(readDeviceStates(statusBases, data))
 			.climateSensors(climate)
 			.wSensors(wSensors)
