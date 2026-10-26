@@ -114,7 +114,7 @@ export const RecuperatorWidget = () => {
 
   return (
     <div className="space-y-6 pb-6">
-      <RecuperatorLoad type="rotor" percent={error ? null : rotorPercent(data?.recupCurrentRpm, data?.recupMaximumRpm)} />
+      <RecuperatorLoad type="rotor" percent={error ? null : rotorPercent(data?.recupTargetRpm, data?.recupMaximumRpm)} />
       {/* === СЕКЦИЯ 1: МОНИТОРИНГ РЕКУПЕРАТОРА === */}
       <div className="space-y-3 animate-in fade-in fill-mode-backwards duration-500 motion-reduce:animate-none">
         <div className="flex justify-between items-center py-3 px-4 rounded-xl border border-slate-200 bg-white">
